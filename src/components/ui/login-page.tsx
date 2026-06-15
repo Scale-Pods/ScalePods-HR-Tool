@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/supabase";
 
-type Page = "login" | "forgot" | "reset";
+type Page = "login" | "forgot";
 
 export function LoginPage() {
   const [page, setPage] = useState<Page>("login");
@@ -10,14 +10,6 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace("#", ""));
-    if (params.get("type") === "recovery") {
-      setPage("reset");
-    }
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +39,7 @@ export function LoginPage() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
       {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
+        redirectTo: `${window.location.origin}/reset-password`,
       }
     );
 
@@ -58,40 +50,6 @@ export function LoginPage() {
     } else {
       setMessage("Check your email for a password reset link.");
     }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    });
-
-    if (updateError) {
-      setError(updateError.message);
-      setLoading(false);
-      return;
-    }
-
-    const { data: userData } = await supabase.auth.getUser();
-    const userEmail = userData?.user?.email;
-
-    if (userEmail) {
-      await supabase.rpc("sync_password_hash", {
-        p_email: userEmail,
-        p_password: password,
-      });
-    }
-
-    setLoading(false);
-    setMessage("Password updated successfully!");
-    setTimeout(() => {
-      setPage("login");
-      setMessage("");
-      setPassword("");
-    }, 2000);
   };
 
   return (
@@ -195,36 +153,6 @@ export function LoginPage() {
               }}
             >
               Back to Sign In
-            </button>
-          </form>
-        )}
-
-        {page === "reset" && (
-          <form onSubmit={handleResetPassword} className="login-form">
-            <h1 className="login-title">Set New Password</h1>
-            <p className="login-subtitle">
-              Enter your new password below.
-            </p>
-
-            <div className="login-field">
-              <label htmlFor="new-password">New Password</label>
-              <input
-                id="new-password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoFocus
-              />
-            </div>
-
-            {error && <div className="login-error">{error}</div>}
-            {message && <div className="login-success">{message}</div>}
-
-            <button type="submit" className="login-btn" disabled={loading}>
-              {loading ? "Updating..." : "Update Password"}
             </button>
           </form>
         )}

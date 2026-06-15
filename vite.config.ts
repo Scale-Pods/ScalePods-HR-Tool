@@ -5,6 +5,14 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        reset: path.resolve(__dirname, 'reset-password.html'),
+      },
+    },
+  },
   server: {
     port: 3000,
     open: true,
