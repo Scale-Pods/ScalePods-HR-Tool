@@ -41,7 +41,10 @@ next-env.d.ts
 !*.config.js
 !*.config.mjs
 !*.config.ts
-*.html
-!reset-password.html
+# HTML files
+!index.html
+!reset-password/index.html
+!react-demo.html
+
 *.log
 src_old/
