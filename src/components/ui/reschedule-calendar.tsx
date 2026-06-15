@@ -57,32 +57,30 @@ function TimeCarousel({
     else goNext()
   }
 
+  // Auto-select first slot if nothing is selected
+  React.useEffect(() => {
+    if (slots.length > 0 && !selected) {
+      onSelect(slots[0].value)
+    }
+  }, [slots, selected, onSelect])
+
   const selectedSlot = selected ? slots.find(s => s.value === selected) : null
 
   if (slots.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-        No available slots for this date
+      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 text-center px-4">
+        <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <p className="text-sm font-semibold text-gray-900 mb-1">No slots available</p>
+        <p className="text-[12px] text-gray-500">All time slots for this date have passed or are booked.</p>
       </div>
     )
   }
 
-  if (!selected) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center select-none">
-        <div className="text-center">
-          <p className="text-[13px] font-medium text-gray-400 mb-3">Choose a time slot</p>
-          <button
-            type="button"
-            onClick={() => onSelect(slots[Math.floor(slots.length / 2)].value)}
-            className="px-5 py-2.5 rounded-xl text-[12px] font-semibold text-white bg-gradient-to-r from-[#2563eb] to-[#3b82f6] hover:shadow-md hover:shadow-blue-200 transition-all duration-200 cursor-pointer"
-          >
-            Show available times
-          </button>
-        </div>
-      </div>
-    )
-  }
+  if (!selected) return null
 
   const visibleIndices: number[] = []
   for (let i = selIndex - 2; i <= selIndex + 2; i++) {
@@ -98,23 +96,18 @@ function TimeCarousel({
       role="listbox"
       aria-label="Available time slots"
     >
-      <div className="w-full max-w-[340px] flex flex-col items-center gap-3">
-        {/* Slot count */}
-        <p className="text-[10px] font-medium text-gray-400">
-          {selIndex + 1} of {slots.length} slots
-        </p>
-
+      <div className="w-full max-w-[340px] flex flex-col items-center gap-6">
         {/* Carousel row */}
-        <div className="flex items-center justify-center gap-2 w-full">
+        <div className="flex items-center justify-center gap-4 w-full">
           {/* Previous arrow */}
           <button
             type="button"
             onClick={goPrev}
             disabled={selIndex <= 0}
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200 bg-white text-gray-400 hover:text-[#2563eb] hover:border-[#2563eb] transition-all duration-200 cursor-pointer disabled:opacity-25 disabled:cursor-default"
+            className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center border border-gray-200 bg-white text-gray-400 hover:text-[#2563eb] hover:border-[#2563eb] hover:shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:cursor-default"
             aria-label="Previous time"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
@@ -122,20 +115,23 @@ function TimeCarousel({
           {/* Center: selected card */}
           <motion.div
             key={selected}
-            initial={{ opacity: 0, scale: 0.92, y: 4 }}
+            initial={{ opacity: 0, scale: 0.9, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 350, damping: 28, mass: 0.8 }}
-            className="flex-1 max-w-[180px]"
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="flex-1 max-w-[200px]"
           >
-            <div className="bg-gradient-to-br from-[#2563eb] to-[#3b82f6] rounded-xl shadow-md shadow-blue-200/30 px-3 py-3 text-center">
-              <p className="text-[28px] font-bold text-white leading-tight">
-                {selectedSlot!.label}
+            <div className="bg-gradient-to-br from-[#2563eb] to-[#3b82f6] rounded-[28px] shadow-xl shadow-blue-200/40 px-4 py-6 text-center border border-white/10">
+              <p className="text-[32px] font-black text-white leading-tight tracking-tight">
+                {selectedSlot?.label.split(' ')[0]}
               </p>
-              <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <p className="text-[14px] font-bold text-white/90 uppercase tracking-widest mt-0.5">
+                {selectedSlot?.label.split(' ')[1]}
+              </p>
+              <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/10">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span className="text-[9px] font-semibold text-white">30 min</span>
+                <span className="text-[10px] font-bold text-white tracking-wide uppercase">30 Min Session</span>
               </div>
             </div>
           </motion.div>
@@ -145,32 +141,35 @@ function TimeCarousel({
             type="button"
             onClick={goNext}
             disabled={selIndex >= slots.length - 1}
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200 bg-white text-gray-400 hover:text-[#2563eb] hover:border-[#2563eb] transition-all duration-200 cursor-pointer disabled:opacity-25 disabled:cursor-default"
+            className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center border border-gray-200 bg-white text-gray-400 hover:text-[#2563eb] hover:border-[#2563eb] hover:shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:cursor-default"
             aria-label="Next time"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
         </div>
 
+        {/* Slot count */}
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+           Slot {selIndex + 1} of {slots.length} available
+        </p>
+
         {/* Adjacent pill buttons */}
-        <div className="flex items-center justify-center gap-2 flex-wrap min-h-[32px]">
+        <div className="flex items-center justify-center gap-2.5 flex-wrap min-h-[40px]">
           {visibleIndices.map((i) => {
             const slot = slots[i]
             const isSel = i === selIndex
             return (
               <motion.button
                 key={slot.value}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, delay: Math.abs(i - selIndex) * 0.03 }}
+                layoutId={`pill-${slot.value}`}
                 type="button"
                 onClick={() => onSelect(slot.value)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all duration-300 cursor-pointer border ${
                   isSel
-                    ? 'bg-[#2563eb] text-white shadow-sm shadow-blue-200'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100'
+                    ? 'bg-[#2563eb] text-white border-ring shadow-md shadow-blue-100 scale-105'
+                    : 'bg-white text-gray-500 hover:text-ring hover:border-ring/30 border-gray-100 shadow-sm'
                 }`}
               >
                 {slot.label}
@@ -205,7 +204,7 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
   }, [toast])
 
   const timeSlots: Slot[] = React.useMemo(() => {
-    return Array.from({ length: 37 }, (_, i) => {
+    return Array.from({ length: 55 }, (_, i) => {
       const totalMinutes = i * 15
       const hour = Math.floor(totalMinutes / 60) + 9
       const minute = totalMinutes % 60
@@ -219,6 +218,21 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
       }
     })
   }, [])
+
+  const filteredTimeSlots = React.useMemo(() => {
+    if (!date) return []
+    const now = new Date()
+    const isToday = date.toDateString() === now.toDateString()
+    
+    if (!isToday) return timeSlots
+    
+    // Filter out past slots for today (add 5 min buffer to not show slots about to happen)
+    return timeSlots.filter(slot => {
+      const slotTime = new Date(date)
+      slotTime.setHours(slot.hour, slot.minute, 0, 0)
+      return slotTime.getTime() > (now.getTime() + 5 * 60 * 1000)
+    })
+  }, [date, timeSlots])
 
   const handleSubmit = async () => {
     if (!date || !selectedTime) return;
@@ -307,10 +321,10 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
       )}
 
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563eb] to-[#3b82f6] flex items-center justify-center shadow-md shadow-blue-200">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center justify-between px-10 py-6 border-b border-gray-100 shrink-0 bg-white/50 backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#2563eb] to-[#3b82f6] flex items-center justify-center shadow-lg shadow-blue-200/50">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
@@ -318,16 +332,16 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
             </svg>
           </div>
           <div>
-            <h1 className="text-[14px] font-semibold text-gray-900 leading-tight">Reschedule Interview</h1>
-            <p className="text-[12px] text-gray-500 leading-tight mt-0.5">
+            <h1 className="text-[16px] font-bold text-gray-900 tracking-tight">Reschedule Interview</h1>
+            <p className="text-[13px] text-gray-500 font-medium mt-0.5 opacity-80">
               {candidate || "Candidate"}{email ? ` \u2022 ${email}` : ""}
             </p>
           </div>
         </div>
         {date && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#2563eb]"></div>
-            <span className="text-[12px] font-semibold text-[#2563eb] whitespace-nowrap">
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-blue-50/80 border border-blue-100 rounded-2xl shadow-sm">
+            <div className="w-2 h-2 rounded-full bg-[#2563eb] shadow-[0_0_8px_rgba(37,99,235,0.4)]"></div>
+            <span className="text-[13px] font-bold text-[#2563eb] tracking-tight">
               {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           </div>
@@ -336,79 +350,78 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
 
       {/* ─── Body ─── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="flex flex-col items-center py-6 px-6">
-          {/* Calendar Section */}
-          <div className="w-full max-w-[340px]">
-            <div className="text-center mb-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 mb-1">Select Date</h2>
-              <p className="text-[13px] text-gray-500">Choose a new date for this interview</p>
-            </div>
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => { setDate(d); setSelectedTime(null) }}
-                disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
-                showOutsideDays={false}
-                className="p-0"
-                classNames={{
-                  months: "flex justify-center",
-                  month: "w-full",
-                  month_caption: "flex justify-center items-center py-3 h-11",
-                  caption_label: "text-[15px] font-bold text-gray-900",
-                  month_grid: "mx-auto",
-                  day: "text-sm text-gray-600",
-                  day_button: "h-[38px] w-[38px] text-sm font-semibold rounded-xl hover:bg-[#eef2ff] transition-all duration-150 flex items-center justify-center text-gray-700",
-                  today: "text-[#2563eb] font-bold",
-                  outside: "text-gray-300 opacity-30",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 w-full max-w-[340px] my-5">
-            <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-300">Time</span>
-            <div className="flex-1 h-px bg-gray-100" />
-          </div>
-
-          {/* Time Carousel Section */}
-          <div className="w-full max-w-[340px]">
-            <div className="text-center mb-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 mb-1">Select Time</h2>
-              <p className="text-[13px] text-gray-500">
-                {date ? date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Pick a date first'}
-              </p>
-            </div>
-            {loading ? (
-              <div className="flex flex-col items-center gap-5">
-                <div className="h-4 w-32 bg-gray-100 rounded-full animate-pulse" />
-                <div className="h-[180px] w-full bg-gray-50 rounded-3xl animate-pulse border border-gray-100" />
-                <div className="flex gap-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-9 w-20 bg-gray-50 rounded-xl animate-pulse border border-gray-100" />
-                  ))}
-                </div>
+        <div className="flex flex-col lg:flex-row items-stretch min-h-[500px]">
+          {/* Calendar Section (Left Side) */}
+          <div className="flex-1 flex flex-col items-center py-10 px-10 border-b lg:border-b-0 lg:border-r border-gray-100/60">
+            <div className="w-full max-w-[320px]">
+              <div className="text-center mb-10">
+                <h2 className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-ring mb-2.5">1. Select Date</h2>
+                <p className="text-[15px] text-gray-500 font-semibold opacity-70">When would you like to meet?</p>
               </div>
-            ) : (
-              <div className="flex justify-center">
-                <TimeCarousel
-                  slots={timeSlots}
-                  selected={selectedTime}
-                  onSelect={setSelectedTime}
+              <div className="flex justify-center bg-gray-50/40 p-5 rounded-[32px] border border-gray-100/50 shadow-inner">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => { setDate(d); setSelectedTime(null) }}
+                  disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+                  showOutsideDays={false}
+                  className="p-0"
+                  classNames={{
+                    months: "flex justify-center",
+                    month: "w-full",
+                    month_caption: "flex justify-center items-center py-5 h-14",
+                    caption_label: "text-[18px] font-black text-gray-900 tracking-tight",
+                    month_grid: "mx-auto",
+                    day: "text-base text-gray-600",
+                    day_button: "h-[46px] w-[46px] text-[15px] font-bold rounded-2xl hover:bg-white hover:shadow-md hover:text-[#2563eb] transition-all duration-300 flex items-center justify-center text-gray-700",
+                    today: "text-[#2563eb] font-black before:bg-[#2563eb]/10 before:absolute before:inset-1.5 before:rounded-2xl",
+                    selected: "bg-[#2563eb] text-white shadow-xl shadow-blue-200/60 hover:bg-[#2563eb] hover:text-white rounded-2xl scale-110 z-10 border-2 border-white/20",
+                    outside: "text-gray-300 opacity-20",
+                  }}
                 />
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Time Carousel Section (Right Side) */}
+          <div className="flex-1 flex flex-col items-center py-10 px-10 bg-gray-50/20">
+            <div className="w-full max-w-[320px]">
+              <div className="text-center mb-10">
+                <h2 className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-ring mb-2.5">2. Select Time</h2>
+                <p className="text-[15px] text-gray-500 font-semibold opacity-70">
+                  {date ? date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Pick a date first'}
+                </p>
+              </div>
+              
+              {loading ? (
+                <div className="flex flex-col items-center gap-8 mt-10">
+                  <div className="h-7 w-40 bg-gray-200/40 rounded-full animate-pulse" />
+                  <div className="h-[200px] w-full bg-white rounded-[40px] animate-pulse border border-gray-100 shadow-sm" />
+                  <div className="flex gap-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-12 w-28 bg-white rounded-2xl animate-pulse border border-gray-100 shadow-sm" />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-center min-h-[340px]">
+                  <TimeCarousel
+                    slots={filteredTimeSlots}
+                    selected={selectedTime}
+                    onSelect={setSelectedTime}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ─── Footer ─── */}
-      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#eef2ff] to-[#e0e7ff] flex items-center justify-center text-[#2563eb] shadow-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center justify-between px-10 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-[#2563eb] shadow-inner border border-blue-100/50">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
@@ -417,20 +430,20 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
             </svg>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">Selected</p>
-            <p className={`text-[13px] font-semibold leading-tight transition-all duration-200 ${selectedSlotLabel ? 'text-gray-900' : 'text-gray-300'}`}>
-              {selectedSlotLabel || "No slot selected"}
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-gray-400">Confirmation</p>
+            <p className={`text-[15px] font-black tracking-tight transition-all duration-300 ${selectedSlotLabel ? 'text-gray-900' : 'text-gray-300'}`}>
+              {selectedSlotLabel || "Pick a slot to continue"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl text-[12px] font-semibold text-gray-500 hover:text-gray-800 bg-transparent hover:bg-gray-50 border border-gray-200 hover:border-gray-300 transition-all duration-200 cursor-pointer disabled:opacity-40"
+              className="px-8 py-3.5 rounded-xl text-[13px] font-bold text-gray-500 hover:text-gray-800 bg-transparent hover:bg-gray-100/50 border border-gray-200 hover:border-gray-300 transition-all duration-300 cursor-pointer disabled:opacity-40"
             >
               Cancel
             </button>
@@ -439,23 +452,23 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
             type="button"
             disabled={!date || !selectedTime || isSubmitting}
             onClick={handleSubmit}
-            className={`px-6 py-2.5 rounded-xl text-[12px] font-semibold text-white transition-all duration-200 cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 ${
+            className={`px-10 py-3.5 rounded-xl text-[13px] font-extrabold text-white transition-all duration-500 cursor-pointer disabled:cursor-not-allowed flex items-center gap-3 shadow-lg ${
               isSubmitting
                 ? 'bg-[#2563eb]/70'
-                : 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] hover:shadow-md hover:shadow-blue-200 hover:scale-[1.02] active:scale-[0.98]'
+                : 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] hover:shadow-blue-200/50 hover:scale-[1.03] active:scale-[0.97]'
             } disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none`}
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
                 Processing...
               </>
             ) : (
               <>
-                Confirm
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                Confirm Schedule
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
                 </svg>
               </>

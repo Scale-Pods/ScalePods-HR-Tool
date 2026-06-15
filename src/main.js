@@ -1,4 +1,259 @@
 import './style.css';
+import { supabase } from './supabase';
+
+// ═══ LANDING PAGE / AUTH GATE ═══
+(async function initAuthGate() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    document.body.classList.add('logged-in');
+    updateDynamicUserInfo(session.user);
+  }
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      document.body.classList.add('logged-in');
+      updateDynamicUserInfo(session.user);
+    } else {
+      document.body.classList.remove('logged-in');
+    }
+  });
+})();
+
+function updateDynamicUserInfo(user) {
+  if (!user) return;
+  const rawName = user.user_metadata?.full_name || user.email.split('@')[0];
+  const name = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
+  window._userName = name; // Store globally for other functions
+  
+  // Determine Greeting based on time
+  const hour = new Date().getHours();
+  let greetingPrefix = 'Good morning';
+  if (hour >= 12 && hour < 17) greetingPrefix = 'Good afternoon';
+  else if (hour >= 17 || hour < 4) greetingPrefix = 'Good evening';
+
+  // Update Sidebar
+  const sidebarName = document.querySelector('.sidebar-user .user-name');
+  if (sidebarName) sidebarName.textContent = name;
+  
+  const sidebarAvatar = document.querySelector('.sidebar-user .user-avatar');
+  if (sidebarAvatar) sidebarAvatar.textContent = name.substring(0, 2).toUpperCase();
+
+  // Update Topbar Profile
+  const profileName = document.querySelector('.topbar-profile .profile-name');
+  if (profileName) profileName.textContent = name;
+  
+  const profileAvatar = document.querySelector('.topbar-profile .profile-avatar');
+  if (profileAvatar) profileAvatar.textContent = name.substring(0, 2).toUpperCase();
+  
+  // Update Dashboard Greeting
+  const greetingText = document.getElementById('greeting-text');
+  if (greetingText) {
+    greetingText.innerHTML = `${greetingPrefix}, <span class="hero-name">${name}</span>`;
+  }
+
+  // Show Admin Panel if applicable
+  const navUsers = document.getElementById('nav-users');
+  if (navUsers) {
+    const email = user.email.toLowerCase();
+    if (email === 'info@scalepods.co') {
+      navUsers.style.setProperty('display', 'flex', 'important');
+    } else {
+      navUsers.style.setProperty('display', 'none', 'important');
+    }
+  }
+}
+
+// ─── Navbar scroll effect ───
+window.addEventListener('scroll', function() {
+  const navbar = document.getElementById('lp-navbar');
+  if (navbar) {
+    navbar.classList.toggle('scrolled', window.scrollY > 30);
+  }
+});
+
+// ─── Auth Modal Logic ───
+function openAuthModal(mode = 'signin') {
+  authMode = mode;
+  updateAuthModalUI();
+  document.getElementById('auth-overlay').classList.add('open');
+  document.getElementById('auth-modal').classList.add('open');
+}
+function closeAuthModal() {
+  document.getElementById('auth-overlay').classList.remove('open');
+  document.getElementById('auth-modal').classList.remove('open');
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-error').classList.remove('success');
+}
+
+let authMode = 'signin'; // 'signin' or 'signup'
+
+function updateAuthModalUI() {
+  const isSignIn = authMode === 'signin';
+  document.getElementById('auth-title').textContent = isSignIn ? 'Welcome back' : 'Create an account';
+  document.getElementById('auth-subtitle').textContent = isSignIn ? 'Sign in to your ScalePods account' : 'Get started with ScalePods for free';
+  document.getElementById('auth-submit-btn').textContent = isSignIn ? 'Sign In' : 'Sign Up';
+  document.getElementById('auth-toggle-text').textContent = isSignIn ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('auth-toggle-btn').textContent = isSignIn ? 'Sign Up' : 'Sign In';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  updateAuthModalUI();
+}
+
+// Wire up events after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Auth modal triggers
+  const signinBtn = document.getElementById('lp-signin-btn');
+  const getstartedBtn = document.getElementById('lp-getstarted-btn');
+  const heroCta = document.getElementById('lp-hero-cta');
+  const ctaFinal = document.getElementById('lp-cta-final');
+  const authClose = document.getElementById('auth-close');
+  const authOverlay = document.getElementById('auth-overlay');
+  const authToggle = document.getElementById('auth-toggle-btn');
+  const authForm = document.getElementById('auth-form');
+
+  if (signinBtn) signinBtn.addEventListener('click', () => openAuthModal('signin'));
+  if (getstartedBtn) getstartedBtn.addEventListener('click', () => openAuthModal('signup'));
+  if (heroCta) heroCta.addEventListener('click', () => openAuthModal('signup'));
+  if (ctaFinal) ctaFinal.addEventListener('click', () => openAuthModal('signup'));
+  if (authClose) authClose.addEventListener('click', closeAuthModal);
+  if (authOverlay) authOverlay.addEventListener('click', closeAuthModal);
+  if (authToggle) authToggle.addEventListener('click', toggleAuthMode);
+
+  // Auth form submission
+  if (authForm) {
+    authForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errorEl = document.getElementById('auth-error');
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      if (!email || !password) {
+        errorEl.textContent = 'Please fill in all fields';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      const isSignIn = authMode === 'signin';
+      submitBtn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> ' + (isSignIn ? 'Signing in...' : 'Creating account...');
+      errorEl.textContent = '';
+      errorEl.classList.remove('success');
+
+      try {
+        let result;
+        if (authMode === 'signin') {
+          result = await supabase.auth.signInWithPassword({ email, password });
+        } else {
+          result = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+              data: { full_name: email.split('@')[0] }
+            }
+          });
+        }
+
+        if (result.error) {
+          errorEl.textContent = result.error.message;
+          submitBtn.disabled = false;
+          submitBtn.textContent = authMode === 'signin' ? 'Sign In' : 'Sign Up';
+        } else if (authMode === 'signup' && result.data?.user && result.data.session === null) {
+          // Email confirmation might be required
+          errorEl.textContent = 'Sign up successful! Please check your email for confirmation.';
+          errorEl.classList.add('success');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign Up';
+        } else {
+          closeAuthModal();
+          document.body.classList.add('logged-in');
+          // Force full page reload to ensure dashboard initializes with correct user profile
+          window.location.reload();
+        }
+      } catch (err) {
+        errorEl.textContent = 'Something went wrong. Please try again.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = authMode === 'signin' ? 'Sign In' : 'Sign Up';
+      }
+    });
+  }
+
+  // Admin: Create User Form
+  const adminForm = document.getElementById('admin-create-user-form');
+  if (adminForm) {
+    adminForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('admin-new-email').value.trim();
+      const password = document.getElementById('admin-new-password').value;
+      const statusEl = document.getElementById('admin-user-status');
+      const submitBtn = adminForm.querySelector('button[type="submit"]');
+
+      statusEl.textContent = 'Provisioning account...';
+      statusEl.className = 'admin-status info';
+      submitBtn.disabled = true;
+
+      try {
+        // 1. Sign up user in Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: email.split('@')[0] }
+          }
+        });
+
+        // SELF-HEALING: If user already exists in Auth, we still want to try syncing the DB record
+        if (authError && !authError.message.toLowerCase().includes('already registered')) {
+          throw new Error('Auth Error: ' + authError.message);
+        }
+
+        // 2. Sync password and user data to public.users via RPC
+        // This bypasses RLS because the function is 'SECURITY DEFINER'
+        const { error: rpcError } = await supabase.rpc('sync_password_hash', {
+          p_email: email,
+          p_password: password
+        });
+
+        if (rpcError) throw new Error('Sync Error: ' + rpcError.message);
+
+        statusEl.textContent = 'Account successfully provisioned! Auth created/verified and Database synced.';
+        statusEl.className = 'admin-status success';
+        adminForm.reset();
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+        statusEl.className = 'admin-status error';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Smooth scroll for anchor links on landing page
+  document.querySelectorAll('.lp-nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Close mobile menu
+        document.querySelector('.lp-nav-links')?.classList.remove('open');
+        document.querySelector('.lp-nav-actions')?.classList.remove('open');
+      }
+    });
+  });
+});
+
+window.signOutUser = async function() {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Error signing out:', error.message);
+  } else {
+    window.location.href = '/';
+  }
+};
 
 const pages = {
   dashboard: 'Dashboard',
@@ -6,20 +261,44 @@ const pages = {
   create: 'Create Campaign',
   meetings: 'Interview Center',
   'campaign-detail': 'Campaign Details',
-  'offer-letter': 'Offer Letter'
+  'offer-letter': 'Offer Letter',
+  users: 'User Management'
 };
 
 window.toggleSidebar = function() {
   document.getElementById('sidebar').classList.toggle('collapsed');
 };
 
-window.navigate = function(id, clickedNavItem) {
+window.navigate = function(id, clickedNavItem, skipPush = false) {
+  const pageMap = {
+    dashboard: 'page-dashboard',
+    campaigns: 'page-campaigns',
+    create: 'page-create',
+    meetings: 'page-meetings',
+    'campaign-detail': 'page-campaign-detail',
+    'offer-letter': 'page-offer-letter',
+    users: 'page-users'
+  };
+
+  const pageTitle = pages[id] || 'Dashboard';
+  
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  if (clickedNavItem) clickedNavItem.classList.add('active');
-  document.getElementById('page-title').textContent = pages[id];
+  
+  const targetPage = document.getElementById(pageMap[id]);
+  if (targetPage) targetPage.classList.add('active');
+
+  // Update navbar state
+  if (clickedNavItem) {
+    clickedNavItem.classList.add('active');
+  } else {
+    const navItem = document.querySelector(`.nav-item[data-page="${id}"]`);
+    if (navItem) navItem.classList.add('active');
+  }
+
+  document.getElementById('page-title').textContent = pageTitle;
   document.querySelector('.content').scrollTop = 0;
+
   if (window.__mountSearch) window.__mountSearch(id);
   if (id === 'create') { window.loadCampaignDraft(); window.updatePreview(); }
   if (id === 'campaigns') window.loadCampaigns();
@@ -38,7 +317,33 @@ window.navigate = function(id, clickedNavItem) {
   if (id === 'offer-letter') {
     window.initOfferLetter();
   }
+
+  // History API Integration
+  if (!skipPush) {
+    const newPath = id === 'dashboard' ? '/' : '/' + id;
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ pageId: id }, pageTitle, newPath);
+    }
+  }
 };
+
+// Handle browser back/forward
+window.onpopstate = function(event) {
+  const pageId = (event.state && event.state.pageId) || 'dashboard';
+  window.navigate(pageId, null, true);
+};
+
+// Initial routing on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname.replace(/^\/+/, '');
+  const validPages = Object.keys(pages);
+  const initialPage = validPages.includes(path) ? path : 'dashboard';
+  
+  // Minor delay to ensure everything is ready
+  setTimeout(() => {
+    window.navigate(initialPage, null, true);
+  }, 50);
+});
 
 window.toggleTheme = function() {
   const body = document.body;
@@ -327,7 +632,7 @@ window.submitCampaign = function() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> Submitting...';
 
-  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=CampaignCreation', {
+  fetch('/n8n-proxy/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=CampaignCreation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -384,7 +689,7 @@ document.getElementById('delete-confirm-btn').addEventListener('click', function
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> Deleting...';
   closeDeleteModal();
-  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=DeleteCampaign', {
+  fetch('/n8n-proxy/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=DeleteCampaign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: name })
@@ -761,7 +1066,7 @@ function formatTimeDisplay(val) {
 window.loadInterviewers = function() {
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing',
-    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing'
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing'
   ];
   function tryFetch(i) {
     if (i >= urls.length) return;
@@ -799,15 +1104,51 @@ window.setFilter = function(el, type) {
 window._meetingsFilter = 'all';
 
 window.loadMeetingsPage = function() {
-  // Rebuild event map from all available candidate pools
-  buildMeetingsEventMap();
-  window.buildCalendar();
-  updateMeetingsMiniStats();
-  renderLiveDailyTrack(window._meetingsFilter || 'all');
-  // If we have campaigns but no candidate data yet, fetch for all campaigns
-  if (!(window._candidateData || []).length && !(window._dashboardCampaignData || []).length) {
-    window.fetchAllCandidatesForMeetings();
+  fetchMeetingsInterviewData();
+};
+
+window.fetchMeetingsInterviewData = function() {
+  var cb = Date.now();
+  var urls = [
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Interview&_=' + cb,
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Interview&_=' + cb
+  ];
+
+  function tryFetch(i) {
+    if (i >= urls.length) {
+      buildMeetingsEventMap();
+      window.buildCalendar();
+      updateMeetingsMiniStats();
+      renderLiveDailyTrack(window._meetingsFilter || 'all');
+      if (!(window._candidateData || []).length && !(window._dashboardCampaignData || []).length) {
+        window.fetchAllCandidatesForMeetings();
+      }
+      return;
+    }
+    fetch(urls[i])
+      .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function(data) {
+        var list;
+        if (Array.isArray(data)) {
+          list = data[0] && Array.isArray(data[0].data) ? data[0].data : data;
+        } else if (data && Array.isArray(data.data)) {
+          list = data.data;
+        } else {
+          list = [];
+        }
+        if (list && list.length) {
+          window._allMeetingsCandidates = list;
+          buildMeetingsEventMap2(list);
+          window.buildCalendar();
+          updateMeetingsMiniStats();
+          renderLiveDailyTrack(window._meetingsFilter || 'all');
+        } else {
+          tryFetch(i + 1);
+        }
+      })
+      .catch(function() { tryFetch(i + 1); });
   }
+  tryFetch(0);
 };
 
 window.fetchAllCandidatesForMeetings = function() {
@@ -820,7 +1161,7 @@ window.fetchAllCandidatesForMeetings = function() {
     var cb = Date.now();
     var urls = [
       '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb,
-      'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb
+      '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb
     ];
     function tryOne(i) {
       if (i >= urls.length) { done(); return; }
@@ -1062,7 +1403,7 @@ window.loadDashboardData = function(campaignName) {
   var cb = Date.now();
   var urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
-    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
 
   function tryFetch(i) {
@@ -1170,33 +1511,24 @@ function updateDashboardMetrics(candidates, campaign) {
   var decisionQuality = total ? (passRate / 100).toFixed(2) : '0.00';
 
   /* Update DOM */
-  var greeting = document.getElementById('greeting-text');
+  const greeting = document.getElementById('greeting-text');
   if (greeting) {
-    var hours = new Date().getHours();
-    var timeStr = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'evening';
-    var userName = 'Raunak';
-    greeting.innerHTML = 'Good ' + timeStr + ', <span class="hero-name">' + userName + '</span>';
+    const hours = new Date().getHours();
+    const timeStr = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'evening';
+    const name = window._userName || 'Raunak';
+    greeting.innerHTML = `Good ${timeStr}, <span class="hero-name">${name}</span>`;
   }
 
   setText('hero-candidates', total);
   setText('hero-score', avgScore.toFixed(1));
   var subEl = document.getElementById('hero-subtitle');
   if (subEl) {
-    var name = window._dashboardCampaignName || '';
-    if (name) {
-      subEl.innerHTML = 'Campaign <strong>' + name + '</strong> — <strong id="hero-candidates">' + total + '</strong> candidates flowing through the pipeline with a <strong id="hero-score">' + avgScore.toFixed(1) + '</strong> mean score.';
-    } else {
-      subEl.innerHTML = 'Your hiring intelligence is live. <strong id="hero-candidates">' + total + '</strong> candidates flowing through the pipeline with a <strong id="hero-score">' + avgScore.toFixed(1) + '</strong> mean score.';
-    }
+    subEl.innerHTML = `Your hiring intelligence is live. <strong id="hero-candidates">${total}</strong> candidates flowing through the pipeline with a <strong id="hero-score">${avgScore.toFixed(1)}</strong> mean score.`;
   }
 
   var activeCountEl = document.getElementById('active-campaigns-count');
   if (activeCountEl) {
-    if (window._dashboardCampaignName) {
-      activeCountEl.textContent = window._dashboardCampaignName;
-    } else {
-      activeCountEl.textContent = (window._campaignList || []).length + ' active campaigns';
-    }
+    activeCountEl.textContent = (window._campaignList || []).length + ' active campaigns';
   }
 
   /* Hero metrics — animated */
@@ -1488,7 +1820,7 @@ window.loadCampaigns = function() {
   grid.innerHTML = '<div class="campaigns-loading" style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3);font-size:14px;"><i class="ti ti-loader" style="animation:spin 1s linear infinite;display:block;font-size:28px;margin-bottom:12px;"></i>Loading campaigns...</div>';
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns',
-    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns'
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns'
   ];
   function tryFetch(i) {
     if (i >= urls.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="ti ti-cloud-off"></i><div class="empty-state-title">Failed to load</div><div class="empty-state-desc">Could not reach the server. Try again later.</div></div>'; document.getElementById('campaign-badge').textContent = '0'; return; }
@@ -1758,7 +2090,7 @@ window.loadCampaignDetail = function() {
         var fd = new FormData();
         for (var i = 0; i < files.length; i++) { fd.append('resumes', files[i]); }
         fd.append('campaignName', window._campaignDetailName || '');
-        fetch('https://n8n.srv1711190.hstgr.cloud/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
+        fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
           .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status);
             fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> Resume has been uploaded and is being processed and scored';
             submitBtn.disabled = true;
@@ -1789,7 +2121,7 @@ window.loadCampaignDetail = function() {
   const cb = Date.now();
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
-    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
   document.getElementById('candidate-grid').innerHTML = '';
   renderSkeleton();
@@ -2161,7 +2493,7 @@ window.cardDecision = function(idx, round, value, btn) {
   var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
   var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
   c[fieldMap[round]] = value === 'yes' ? 'Selected' : 'Rejected';
-  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round] || round), {
+  fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round] || round), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: round, decision: value })
   }).catch(function() {});
@@ -2559,42 +2891,11 @@ function renderDrawerContent(c) {
     '<div id="decision-feedback"></div>' +
   '</div>';
 
-  /* Interviews section HTML */
-  var interviewsHtml = '';
-  var hasInterview = false;
-  for (var ii = 1; ii <= 3; ii++) {
-    var mtgDate = c['Round ' + ii + ' Meeting Date'];
-    var mtgTime = c['Round ' + ii + ' Meeting Time'];
-    var mtgLink = c['Round ' + ii + ' Meeting Link'];
-    var eventId = c['Round ' + ii + ' Event ID'];
-    var calLink = c['Round ' + ii + ' Calendar Link'];
-    var intLink = c['Round ' + ii + ' Interview Link'];
-    var interviewer = c['Round ' + ii + ' Assigned'] || '';
-    var joinLink = mtgLink || intLink || '';
-    if (mtgDate || mtgTime || joinLink || eventId) {
-      hasInterview = true;
-      interviewsHtml +=
-        '<div style="margin-bottom:12px;border-radius:10px;border:1px solid var(--border-color);overflow:hidden;">' +
-          '<div style="padding:10px 14px;background:var(--surface3);font-size:11px;color:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between;">' +
-            '<span><i class="ti ti-video"></i> Round ' + ii + ' — ' + (roundNames[ii - 1] || 'Interview') + '</span>' +
-            (interviewer ? '<span style="font-size:10px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;"><i class="ti ti-user"></i> ' + interviewer + '</span>' : '') +
-          '</div>' +
-          '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">' +
-            '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
-              (mtgDate ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><i class="ti ti-calendar" style="font-size:14px;"></i> ' + mtgDate + (mtgTime ? ' at ' + mtgTime : '') + '</div>' : '') +
-              (eventId ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);"><i class="ti ti-hash" style="font-size:14px;"></i> ID: ' + eventId + '</div>' : '') +
-            '</div>' +
-            '<div style="display:flex;gap:8px;">' +
-              (joinLink ? '<a href="' + joinLink + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--blue);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-video"></i> Join</a>' : '') +
-              (calLink ? '<a href="' + calLink + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--surface1);color:var(--text2);border:1px solid var(--border-color);border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-calendar-refresh"></i> Reschedule</a>' : '') +
-            '</div>' +
-          '</div>' +
-        '</div>';
-    }
-  }
-  if (!hasInterview) {
-    interviewsHtml = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;"><i class="ti ti-video-off" style="font-size:20px;display:block;margin-bottom:8px;"></i>No interviews scheduled</div>';
-  }
+  /* Interviews section HTML - loaded dynamically on tab click */
+  var interviewsHtml = '<div class="interviews-loading" style="padding:40px;text-align:center;color:var(--text3);font-size:13px;"><i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:12px;"></i>Loading interviews...</div>';
+
+  window._currentCandidateEmail = c.Email || '';
+  window._currentCandidateName = c.Name || '';
 
   var tabs = [
     { key: 'profile', icon: 'ti ti-user', label: 'Profile', content: profileHtml },
@@ -2609,7 +2910,7 @@ function renderDrawerContent(c) {
   for (var ti = 0; ti < tabs.length; ti++) {
     var t = tabs[ti];
     var active = ti === 0;
-    html += '<button onclick="var p=this.parentNode.parentNode;p.querySelectorAll(&#39;.tab-btn&#39;).forEach(function(b){b.style.background=&#39;transparent&#39;;b.style.color=&#39;var(--text3)&#39;});this.style.background=&#39;var(--surface1)&#39;;this.style.color=&#39;var(--text)&#39;;p.querySelectorAll(&#39;.tab-panel&#39;).forEach(function(q){q.style.display=&#39;none&#39;});p.querySelectorAll(&#39;.tab-panel&#39;)[' + ti + '].style.display=&#39;&#39;;" class="tab-btn" style="flex:1;padding:7px 14px;border:none;border-radius:100px;background:' + (active ? 'var(--surface1)' : 'transparent') + ';color:' + (active ? 'var(--text)' : 'var(--text3)') + ';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;"><i class="' + t.icon + '" style="font-size:12px;"></i> ' + t.label + '</button>';
+    html += '<button onclick="window.switchDrawerTab(this, ' + ti + ')" class="tab-btn" style="flex:1;padding:7px 14px;border:none;border-radius:100px;background:' + (active ? 'var(--surface1)' : 'transparent') + ';color:' + (active ? 'var(--text)' : 'var(--text3)') + ';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;"><i class="' + t.icon + '" style="font-size:12px;"></i> ' + t.label + '</button>';
   }
   html += '</div>';
 
@@ -2631,6 +2932,105 @@ function renderDrawerContent(c) {
       if (btn) window.selectDecision(btn, r, dv);
     }
   });
+}
+
+/* ─── Drawer Tab Switching ─── */
+
+window.switchDrawerTab = function(btn, tabIndex) {
+  var p = btn.parentNode.parentNode;
+  p.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text3)';
+  });
+  btn.style.background = 'var(--surface1)';
+  btn.style.color = 'var(--text)';
+  p.querySelectorAll('.tab-panel').forEach(function(q) { q.style.display = 'none'; });
+  p.querySelectorAll('.tab-panel')[tabIndex].style.display = '';
+
+  if (tabIndex === 3) {
+    window.loadInterviewsTab();
+  }
+};
+
+window.loadInterviewsTab = function() {
+  var panel = document.querySelectorAll('.tab-panel')[3];
+  if (!panel) return;
+  if (panel.getAttribute('data-loaded') === '1') return;
+
+  var email = window._currentCandidateEmail || '';
+  var name = window._currentCandidateName || '';
+  var cb = Date.now();
+  var encodedAction = encodeURIComponent('Interview');
+  var params = 'action=' + encodedAction + '&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name) + '&_=' + cb;
+  var urls = [
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?' + params,
+    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?' + params
+  ];
+
+  function tryFetch(i) {
+    if (i >= urls.length) {
+      panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;"><i class="ti ti-cloud-off" style="font-size:20px;display:block;margin-bottom:8px;"></i>Failed to load interviews</div>';
+      return;
+    }
+    fetch(urls[i])
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data) {
+        panel.setAttribute('data-loaded', '1');
+        renderInterviewsResponse(panel, data);
+      })
+      .catch(function() { tryFetch(i + 1); });
+  }
+  tryFetch(0);
+};
+
+function renderInterviewsResponse(panel, data) {
+  var list;
+  if (Array.isArray(data)) {
+    if (data[0] && Array.isArray(data[0].data)) list = data[0].data;
+    else list = data;
+  } else if (data && Array.isArray(data.data)) {
+    list = data.data;
+  } else {
+    list = [data];
+  }
+
+  if (!list || (Array.isArray(list) && list.length === 0)) {
+    panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;"><i class="ti ti-video-off" style="font-size:20px;display:block;margin-bottom:8px;"></i>No interviews found</div>';
+    return;
+  }
+
+  var items = Array.isArray(list) ? list : [list];
+  var html = '';
+  items.forEach(function(item) {
+    var itemObj = typeof item === 'object' && item !== null ? item : {};
+    var roundName = itemObj.Round || itemObj.round || itemObj.name || 'Interview';
+    var date = itemObj.Date || itemObj.date || itemObj['Meeting Date'] || itemObj.meetingDate || '';
+    var time = itemObj.Time || itemObj.time || itemObj['Meeting Time'] || itemObj.meetingTime || '';
+    var link = itemObj.Link || itemObj.link || itemObj['Meeting Link'] || itemObj.meetingLink || itemObj['Interview Link'] || itemObj.interviewLink || '';
+    var eventId = itemObj.EventId || itemObj.eventId || itemObj['Event ID'] || itemObj.eventID || '';
+    var interviewer = itemObj.Interviewer || itemObj.interviewer || itemObj.Assigned || itemObj.assigned || '';
+    var calLink = itemObj.CalendarLink || itemObj.calendarLink || itemObj['Calendar Link'] || itemObj.calendar_link || '';
+
+    html +=
+      '<div style="margin-bottom:12px;border-radius:10px;border:1px solid var(--border-color);overflow:hidden;">' +
+        '<div style="padding:10px 14px;background:var(--surface3);font-size:11px;color:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between;">' +
+          '<span><i class="ti ti-video"></i> ' + roundName + '</span>' +
+          (interviewer ? '<span style="font-size:10px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;"><i class="ti ti-user"></i> ' + interviewer + '</span>' : '') +
+        '</div>' +
+        '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">' +
+          '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+            ((date || time) ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><i class="ti ti-calendar" style="font-size:14px;"></i> ' + (date || '') + (date && time ? ' at ' : '') + (time || '') + '</div>' : '') +
+            (eventId ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);"><i class="ti ti-hash" style="font-size:14px;"></i> ID: ' + eventId + '</div>' : '') +
+          '</div>' +
+          '<div style="display:flex;gap:8px;">' +
+            (link ? '<a href="' + link + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--blue);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-video"></i> Join</a>' : '') +
+            (calLink ? '<a href="' + calLink + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--surface1);color:var(--text2);border:1px solid var(--border-color);border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-calendar-refresh"></i> Reschedule</a>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  });
+
+  panel.innerHTML = html;
 }
 
 /* ─── Decision Yes/No Toggle ─── */
@@ -2696,7 +3096,7 @@ window.submitDecisions = function() {
   var hasError = false;
 
   toSubmit.forEach(function(item) {
-    fetch('https://n8n.srv1711190.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(item.action), {
+    fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(item.action), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item.data)
@@ -2724,7 +3124,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let greeting = 'Good evening';
     if (hr < 12) greeting = 'Good morning';
     else if (hr < 17) greeting = 'Good afternoon';
-    greetingEl.innerHTML = greeting + ', <span class="hero-name">Raunak</span>';
+    const name = window._userName || 'Raunak';
+    greetingEl.innerHTML = greeting + ', <span class="hero-name">' + name + '</span>';
   }
   window.buildCalendar();
   window.loadInterviewers();

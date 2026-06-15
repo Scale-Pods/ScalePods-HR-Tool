@@ -12,6 +12,359 @@
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- ═══ LANDING PAGE (visible when NOT logged in) ═══ -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="landing-page" class="landing-page">
+
+  <!-- ─── Navbar ─── -->
+  <nav class="lp-navbar" id="lp-navbar">
+    <div class="lp-navbar-inner">
+      <a href="/" class="lp-logo">
+        <img src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_AvW1R1yMJvpQiN2nqX9xH2iu1ETN" alt="ScalePods" class="lp-logo-img">
+      </a>
+      <div class="lp-nav-links">
+        <a href="#features" class="lp-nav-link">Features</a>
+        <a href="#benefits" class="lp-nav-link">Benefits</a>
+        <a href="#pipeline" class="lp-nav-link">Pipeline</a>
+        <a href="#pricing" class="lp-nav-link">Pricing</a>
+        <a href="#contact" class="lp-nav-link">Contact</a>
+      </div>
+      <div class="lp-nav-actions">
+        <button class="lp-btn-cta" id="lp-signin-btn">Sign In <i class="ti ti-arrow-right"></i></button>
+      </div>
+      <button class="lp-mobile-menu-btn" id="lp-mobile-toggle" onclick="document.querySelector('.lp-nav-links').classList.toggle('open'); document.querySelector('.lp-nav-actions').classList.toggle('open');">
+        <i class="ti ti-menu-2"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ─── Hero Section ─── -->
+  <section class="lp-hero">
+    <div class="lp-hero-bg-orbs">
+      <div class="lp-orb lp-orb-1"></div>
+      <div class="lp-orb lp-orb-2"></div>
+      <div class="lp-orb lp-orb-3"></div>
+    </div>
+    <div class="lp-hero-grid">
+      <div class="lp-hero-content">
+        <div class="lp-hero-badge">
+          <span class="lp-badge-dot"></span>
+          <span>AI-POWERED TALENT OS</span>
+        </div>
+        <h1 class="lp-hero-title">
+          Hire Smarter with<br>
+          <span class="lp-gradient-text">ScalePods Intel</span>
+        </h1>
+        <p class="lp-hero-desc">
+          The minimal, all-in-one recruitment platform with AI screening, automated pipelines, and intelligent offer management.
+        </p>
+        <div class="lp-hero-actions">
+          <button class="lp-btn-primary lp-btn-lg" id="lp-hero-cta">
+            Sign In to Dashboard <i class="ti ti-arrow-right"></i>
+          </button>
+          <button class="lp-btn-outline lp-btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
+            <i class="ti ti-player-play"></i> Watch Demo
+          </button>
+        </div>
+        <div class="lp-social-proof">
+          <div class="lp-avatar-stack">
+            <div class="lp-sp-avatar logo-avatar"><img src="https://victoryenergy.us/wp-content/uploads/2026/05/VE-Logo-Color.svg" alt="Victory Energy"></div>
+            <div class="lp-sp-avatar logo-avatar"><img src="https://zvsteels.com/assets/img/zv_logo.png" alt="ZV Steels"></div>
+          </div>
+          <div class="lp-sp-text">
+            <strong>Trusted by growing teams</strong>
+          </div>
+        </div>
+      </div>
+      <div class="lp-hero-visual">
+        <div class="lp-dashboard-mockup">
+          <div class="lp-mockup-chrome">
+            <div class="lp-chrome-dots">
+              <span style="background:#ef4444;"></span>
+              <span style="background:#f59e0b;"></span>
+              <span style="background:#10b981;"></span>
+            </div>
+            <div class="lp-chrome-url">app.scalepods.co/dashboard</div>
+          </div>
+          <img src="/src/dashboard-mockup.png" alt="ScalePods Dashboard" class="lp-mockup-img">
+          <!-- Floating Cards -->
+          <div class="lp-float-card lp-float-health">
+            <div class="lp-float-label">PIPELINE HEALTH</div>
+            <div class="lp-float-value">892</div>
+            <div class="lp-float-sub">active candidates</div>
+          </div>
+          <div class="lp-float-card lp-float-time">
+            <div class="lp-float-label">TIME TO HIRE</div>
+            <div class="lp-float-value lp-float-accent">8.2d</div>
+            <div class="lp-float-sub lp-float-green">↓ 35% vs last month</div>
+          </div>
+          <div class="lp-float-card lp-float-ai">
+            <div class="lp-float-icon"><i class="ti ti-brain"></i></div>
+            <div>
+              <div class="lp-float-label">AI SCORE</div>
+              <div class="lp-float-value">94%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Trusted By ─── -->
+  <section class="lp-trusted">
+    <p class="lp-trusted-label">TRUSTED BY INNOVATIVE TEAMS WORLDWIDE</p>
+    <div class="lp-trusted-logos">
+      <span class="lp-logo-text">Linear</span>
+      <span class="lp-logo-text">Stripe</span>
+      <span class="lp-logo-text">Vercel</span>
+      <span class="lp-logo-text">Notion</span>
+      <span class="lp-logo-text">Rippling</span>
+    </div>
+  </section>
+
+  <!-- ─── Features Section ─── -->
+  <section class="lp-section" id="features">
+    <div class="lp-section-badge"><i class="ti ti-sparkles"></i> PLATFORM FEATURES</div>
+    <h2 class="lp-section-title">Total Control of Your Pipeline</h2>
+    <p class="lp-section-desc">Everything you need to scale your team, condensed into a single elegant interface.</p>
+    <div class="lp-features-grid">
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(37,99,235,0.08);color:#2563eb;">
+          <i class="ti ti-settings-automation"></i>
+        </div>
+        <h3 class="lp-feature-title">AI Screening Engine</h3>
+        <p class="lp-feature-desc">Automatically parse, score, and rank every resume against your job descriptions with precision ML models.</p>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(6,182,212,0.08);color:#06b6d4;">
+          <i class="ti ti-users-group"></i>
+        </div>
+        <h3 class="lp-feature-title">Smart Pipeline</h3>
+        <p class="lp-feature-desc">Multi-round interview tracking with intelligent scheduling, automated reminders, and bottleneck detection.</p>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(16,185,129,0.08);color:#10b981;">
+          <i class="ti ti-chart-bar"></i>
+        </div>
+        <h3 class="lp-feature-title">Analytics Dashboard</h3>
+        <p class="lp-feature-desc">Real-time metrics on conversion rates, time-to-hire, city distribution, and recruiter performance leaderboards.</p>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(139,92,246,0.08);color:#8b5cf6;">
+          <i class="ti ti-file-description"></i>
+        </div>
+        <h3 class="lp-feature-title">Offer Generator</h3>
+        <p class="lp-feature-desc">Generate beautiful, branded offer letters instantly with customizable templates and one-click PDF export.</p>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(245,158,11,0.08);color:#f59e0b;">
+          <i class="ti ti-brain"></i>
+        </div>
+        <h3 class="lp-feature-title">Call Intelligence</h3>
+        <p class="lp-feature-desc">AI-powered call log analysis that extracts key insights, scores candidate responses, and flags red flags.</p>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon" style="background:rgba(236,72,153,0.08);color:#ec4899;">
+          <i class="ti ti-calendar-event"></i>
+        </div>
+        <h3 class="lp-feature-title">Interview Scheduler</h3>
+        <p class="lp-feature-desc">Integrated calendar with Google Meet/Zoom links, automated rescheduling, and timezone-aware booking.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Benefits / Pipeline Section ─── -->
+  <section class="lp-section lp-section-alt" id="pipeline">
+    <div class="lp-section-badge"><i class="ti ti-git-branch"></i> HOW IT WORKS</div>
+    <h2 class="lp-section-title">From Resume to Offer in Days, Not Weeks</h2>
+    <p class="lp-section-desc">Our AI-powered pipeline automates the tedious parts so you can focus on what matters — finding the right people.</p>
+    <div class="lp-pipeline-steps">
+      <div class="lp-pipe-step">
+        <div class="lp-pipe-num">01</div>
+        <div class="lp-pipe-icon"><i class="ti ti-upload"></i></div>
+        <h3>Upload Resumes</h3>
+        <p>Bulk upload resumes in any format. Our AI parses and structures the data instantly.</p>
+      </div>
+      <div class="lp-pipe-connector"><i class="ti ti-arrow-right"></i></div>
+      <div class="lp-pipe-step">
+        <div class="lp-pipe-num">02</div>
+        <div class="lp-pipe-icon"><i class="ti ti-brain"></i></div>
+        <h3>AI Analysis</h3>
+        <p>Each candidate is scored against your JD with weighted criteria and gap analysis.</p>
+      </div>
+      <div class="lp-pipe-connector"><i class="ti ti-arrow-right"></i></div>
+      <div class="lp-pipe-step">
+        <div class="lp-pipe-num">03</div>
+        <div class="lp-pipe-icon"><i class="ti ti-phone-call"></i></div>
+        <h3>Interview & Score</h3>
+        <p>Schedule multi-round interviews with automated meeting links and call analysis.</p>
+      </div>
+      <div class="lp-pipe-connector"><i class="ti ti-arrow-right"></i></div>
+      <div class="lp-pipe-step">
+        <div class="lp-pipe-num">04</div>
+        <div class="lp-pipe-icon"><i class="ti ti-check"></i></div>
+        <h3>Hire & Offer</h3>
+        <p>Generate offer letters, track acceptance, and onboard — all from one place.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Benefits Section ─── -->
+  <section class="lp-section" id="benefits">
+    <div class="lp-section-badge"><i class="ti ti-rocket"></i> WHY SCALEPODS</div>
+    <h2 class="lp-section-title">Built for Speed, Designed for Scale</h2>
+    <p class="lp-section-desc">Whether you're hiring 5 or 500, ScalePods scales with you.</p>
+    <div class="lp-stats-row">
+      <div class="lp-stat-card">
+        <div class="lp-stat-value">85%</div>
+        <div class="lp-stat-label">Faster Screening</div>
+        <div class="lp-stat-desc">AI-powered resume analysis cuts screening time dramatically</div>
+      </div>
+      <div class="lp-stat-card">
+        <div class="lp-stat-value">3.2x</div>
+        <div class="lp-stat-label">Better Hires</div>
+        <div class="lp-stat-desc">Data-driven decisions lead to higher quality candidates</div>
+      </div>
+      <div class="lp-stat-card">
+        <div class="lp-stat-value">60%</div>
+        <div class="lp-stat-label">Less Admin Work</div>
+        <div class="lp-stat-desc">Automated pipelines free your team to focus on people</div>
+      </div>
+      <div class="lp-stat-card">
+        <div class="lp-stat-value">8.2d</div>
+        <div class="lp-stat-label">Time to Hire</div>
+        <div class="lp-stat-desc">From application to offer, faster than industry average</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Pricing Section ─── -->
+  <section class="lp-section lp-section-alt" id="pricing">
+    <div class="lp-section-badge"><i class="ti ti-diamond"></i> PRICING</div>
+    <h2 class="lp-section-title">Simple, Transparent Pricing</h2>
+    <p class="lp-section-desc">Start free. Scale when you're ready.</p>
+    <div class="lp-pricing-grid">
+      <div class="lp-pricing-card">
+        <div class="lp-price-tier">Starter</div>
+        <div class="lp-price-amount">Free</div>
+        <div class="lp-price-period">forever</div>
+        <ul class="lp-price-features">
+          <li><i class="ti ti-check"></i> Up to 3 campaigns</li>
+          <li><i class="ti ti-check"></i> 50 candidates/month</li>
+          <li><i class="ti ti-check"></i> AI resume screening</li>
+          <li><i class="ti ti-check"></i> Basic analytics</li>
+        </ul>
+        <button class="lp-btn-outline lp-btn-full" onclick="document.getElementById('lp-signin-btn').click()">Get Started</button>
+      </div>
+      <div class="lp-pricing-card lp-pricing-featured">
+        <div class="lp-price-popular">MOST POPULAR</div>
+        <div class="lp-price-tier">Pro</div>
+        <div class="lp-price-amount">$49</div>
+        <div class="lp-price-period">per month</div>
+        <ul class="lp-price-features">
+          <li><i class="ti ti-check"></i> Unlimited campaigns</li>
+          <li><i class="ti ti-check"></i> Unlimited candidates</li>
+          <li><i class="ti ti-check"></i> Call intelligence</li>
+          <li><i class="ti ti-check"></i> Advanced analytics</li>
+          <li><i class="ti ti-check"></i> Offer letter generator</li>
+          <li><i class="ti ti-check"></i> Priority support</li>
+        </ul>
+        <button class="lp-btn-primary lp-btn-full" onclick="document.getElementById('lp-signin-btn').click()">Start Free Trial</button>
+      </div>
+      <div class="lp-pricing-card">
+        <div class="lp-price-tier">Enterprise</div>
+        <div class="lp-price-amount">Custom</div>
+        <div class="lp-price-period">contact us</div>
+        <ul class="lp-price-features">
+          <li><i class="ti ti-check"></i> Everything in Pro</li>
+          <li><i class="ti ti-check"></i> SSO & SAML</li>
+          <li><i class="ti ti-check"></i> Custom integrations</li>
+          <li><i class="ti ti-check"></i> Dedicated success manager</li>
+          <li><i class="ti ti-check"></i> SLA guarantees</li>
+        </ul>
+        <button class="lp-btn-outline lp-btn-full">Contact Sales</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA Section ─── -->
+  <section class="lp-cta-section" id="contact">
+    <div class="lp-cta-inner">
+      <h2 class="lp-cta-title">Ready to transform your hiring?</h2>
+      <p class="lp-cta-desc">Join hundreds of teams already hiring smarter with ScalePods Intel.</p>
+      <div class="lp-cta-actions">
+        <button class="lp-btn-white lp-btn-lg" id="lp-cta-final">
+          Get Started Free <i class="ti ti-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <footer class="lp-footer">
+    <div class="lp-footer-inner">
+      <div class="lp-footer-brand">
+        <img src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_AvW1R1yMJvpQiN2nqX9xH2iu1ETN" alt="ScalePods" class="lp-footer-logo">
+        <p class="lp-footer-tagline">Scale your hiring. Intelligently.</p>
+      </div>
+      <div class="lp-footer-links">
+        <div class="lp-footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#pipeline">How it works</a>
+        </div>
+        <div class="lp-footer-col">
+          <h4>Company</h4>
+          <a href="#">About</a>
+          <a href="#">Careers</a>
+          <a href="#">Blog</a>
+        </div>
+        <div class="lp-footer-col">
+          <h4>Legal</h4>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Security</a>
+        </div>
+      </div>
+    </div>
+    <div class="lp-footer-bottom">
+      <span>© 2026 ScalePods. All rights reserved.</span>
+    </div>
+  </footer>
+
+</div><!-- /landing-page -->
+
+<!-- ═══ AUTH MODAL ═══ -->
+<div class="auth-overlay" id="auth-overlay"></div>
+<div class="auth-modal" id="auth-modal">
+  <button class="auth-close" id="auth-close"><i class="ti ti-x"></i></button>
+  <div class="auth-modal-inner">
+    <div class="auth-logo">
+      <img src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_AvW1R1yMJvpQiN2nqX9xH2iu1ETN" alt="ScalePods" style="height:28px;">
+    </div>
+    <h2 class="auth-title" id="auth-title">Welcome back</h2>
+    <p class="auth-subtitle" id="auth-subtitle">Sign in to your ScalePods account</p>
+    <form id="auth-form" autocomplete="on">
+      <div class="auth-field">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" placeholder="you@company.com" required autocomplete="email">
+      </div>
+      <div class="auth-field" id="auth-password-field">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+      <button type="submit" class="lp-btn-primary lp-btn-full auth-submit" id="auth-submit-btn">Sign In</button>
+    </form>
+    <div class="auth-toggle" style="display: none;">
+      <span id="auth-toggle-text">Don't have an account?</span>
+      <button type="button" class="auth-toggle-btn" id="auth-toggle-btn">Sign Up</button>
+    </div>
+  </div>
+</div>
+
 <div id="react-root"></div>
 
 <div class="app-layout">
@@ -20,7 +373,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-inner">
       <div class="sidebar-logo">
-        <img src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_DX4go8Z4Sy3vBkyqLBb8kxYXVNrc"
+        <img src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_AvW1R1yMJvpQiN2nqX9xH2iu1ETN"
              alt="ScalePods"
              class="sidebar-logo-img">
       </div>
@@ -28,26 +381,30 @@
       <div class="sidebar-nav-label">Menu</div>
 
       <nav class="sidebar-nav">
-        <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard', this)">
+        <a href="/" class="nav-item active" data-page="dashboard" onclick="event.preventDefault(); navigate('dashboard', this)">
           <i class="ti ti-layout-dashboard"></i>
           <span>Dashboard</span>
         </a>
-        <a class="nav-item" data-page="campaigns" onclick="navigate('campaigns', this)">
+        <a href="/campaigns" class="nav-item" data-page="campaigns" onclick="event.preventDefault(); navigate('campaigns', this)">
           <i class="ti ti-speakerphone"></i>
           <span>Campaigns</span>
           <span class="badge" id="campaign-badge">0</span>
         </a>
-        <a class="nav-item" data-page="create" onclick="navigate('create', this)">
+        <a href="/create" class="nav-item" data-page="create" onclick="event.preventDefault(); navigate('create', this)">
           <i class="ti ti-plus"></i>
           <span>New Campaign</span>
         </a>
-        <a class="nav-item" data-page="meetings" onclick="navigate('meetings', this)">
+        <a href="/meetings" class="nav-item" data-page="meetings" onclick="event.preventDefault(); navigate('meetings', this)">
           <i class="ti ti-calendar-event"></i>
           <span>Interviews</span>
         </a>
-        <a class="nav-item" data-page="offer-letter" onclick="navigate('offer-letter', this)">
+        <a href="/offer-letter" class="nav-item" data-page="offer-letter" onclick="event.preventDefault(); navigate('offer-letter', this)">
           <i class="ti ti-file-description"></i>
           <span>Offer Letter</span>
+        </a>
+        <a href="/users" class="nav-item flex" data-page="users" id="nav-users" style="display: none !important;" onclick="event.preventDefault(); navigate('users', this)">
+          <i class="ti ti-users"></i>
+          <span>User Management</span>
         </a>
       </nav>
 
@@ -60,7 +417,7 @@
             <div class="user-name">Raunak</div>
             <div class="user-role">Admin</div>
           </div>
-          <button class="user-menu-btn" onclick="alert('Profile')"><i class="ti ti-dots-vertical"></i></button>
+          <button class="user-menu-btn" onclick="signOutUser()" title="Sign Out"><i class="ti ti-logout"></i></button>
         </div>
       </div>
     </div>
@@ -89,18 +446,80 @@
           <span class="notif-dot"></span>
         </button>
         <div class="topbar-divider"></div>
-        <div class="topbar-profile">
+        <div class="topbar-profile" onclick="signOutUser()" style="cursor: pointer;" title="Sign Out">
           <div class="profile-avatar">SP</div>
           <div class="profile-info">
             <div class="profile-name">Raunak</div>
             <div class="profile-role">Administrator</div>
           </div>
+          <i class="ti ti-logout" style="margin-left: 10px; opacity: 0.6;"></i>
         </div>
       </div>
     </header>
 
     <!-- ─── Content ─── -->
     <div class="content" id="content-area">
+
+      <!-- ═══ USER MANAGEMENT PAGE ═══ -->
+      <div class="page" id="page-users">
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2 class="section-title">User Management</h2>
+            <span class="section-badge admin-badge">System Admin</span>
+          </div>
+        </div>
+
+        <div class="user-management-grid">
+          <div class="user-admin-card">
+            <div class="admin-card-header">
+              <i class="ti ti-user-plus"></i>
+              <h3>Provision New User</h3>
+              <p>Create a new account with delegated access.</p>
+            </div>
+            
+            <form id="admin-create-user-form" class="admin-form">
+              <div class="form-group">
+                <label>Email Address</label>
+                <div class="input-with-icon">
+                  <i class="ti ti-mail"></i>
+                  <input type="email" id="admin-new-email" placeholder="user@scalepods.co" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <div class="input-with-icon">
+                  <i class="ti ti-lock"></i>
+                  <input type="password" id="admin-new-password" placeholder="••••••••" required>
+                </div>
+              </div>
+              <div id="admin-user-status" class="admin-status"></div>
+              <button type="submit" class="btn-primary btn-full">
+                <i class="ti ti-plus"></i> Create Account
+              </button>
+            </form>
+          </div>
+
+          <div class="user-info-panel">
+            <div class="info-icon"><i class="ti ti-shield-check"></i></div>
+            <h4>Security Policy</h4>
+            <p>Admin-created users are stored securely in Supabase Auth. Passwords are automatically hashed at the infrastructure level.</p>
+            <div class="info-list">
+              <div class="info-item">
+                <i class="ti ti-check"></i>
+                <span>Immediate Dashboard Access</span>
+              </div>
+              <div class="info-item">
+                <i class="ti ti-check"></i>
+                <span>Automated Password Hashing</span>
+              </div>
+              <div class="info-item">
+                <i class="ti ti-check"></i>
+                <span>Scalepods Domain Restricted</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ═══ DASHBOARD PAGE ═══ -->
       <div class="page active" id="page-dashboard">
@@ -123,7 +542,7 @@
             <h1 class="hero-title" id="greeting-text">Good morning, <span class="hero-name">Raunak</span></h1>
             <p class="hero-sub" id="hero-subtitle">Your hiring intelligence is live. <strong id="hero-candidates">0</strong> candidates flowing through the pipeline with a <strong id="hero-score">0</strong> mean score.</p>
             <div class="hero-actions">
-              <button class="btn-primary" onclick="navigate('create', this)"><i class="ti ti-sparkles"></i> Create Campaign</button>
+              <button class="btn-primary" onclick="event.preventDefault(); navigate('create', this)"><i class="ti ti-sparkles"></i> Create Campaign</button>
               <button class="btn-secondary"><i class="ti ti-file-analytics"></i> View Report</button>
             </div>
           </div>
@@ -1161,7 +1580,6 @@
     .journey-timeline { display: flex; flex-direction: column; gap: 0; }
     .journey-step { display: flex; gap: 14px; position: relative; padding-bottom: 24px; }
     .journey-step:last-child { padding-bottom: 0; }
-    .journey-current { }
     .journey-connector { display: flex; flex-direction: column; align-items: center; width: 28px; flex-shrink: 0; position: relative; }
     .journey-line { width: 2px; flex: 1; min-height: 24px; background: var(--separator); margin: 2px 0; }
     .journey-line-done { background: var(--emerald); }
@@ -1233,7 +1651,7 @@
     <div class="detail-page-actions">
       <button class="btn-ghost-sm" onclick="loadCampaignDetail()"><i class="ti ti-refresh"></i> Refresh</button>
       <button class="btn-outline"><i class="ti ti-pencil"></i> Edit Campaign</button>
-      <button class="btn-ghost-sm" style="color:var(--red);" onclick="navigate('campaigns')"><i class="ti ti-trash"></i> Back to Campaigns</button>
+      <button class="btn-ghost-sm" style="color:var(--red);" onclick="event.preventDefault(); navigate('campaigns')"><i class="ti ti-trash"></i> Back to Campaigns</button>
     </div>
   </div>
 
@@ -1386,7 +1804,7 @@
 
 <!-- Reschedule Modal (outside page containers so it's always visible) -->
 <div class="drawer-overlay" id="reschedule-overlay" onclick="closeRescheduleModal()"></div>
-<div class="reschedule-modal" id="reschedule-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1001;width:560px;max-width:94vw;display:none;overflow:hidden;border:1px solid rgba(255,255,255,0.15);border-radius:24px;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 24px 64px rgba(0,0,0,0.10),0 0 0 1px rgba(0,0,0,0.02);">
+<div class="reschedule-modal" id="reschedule-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1001;width:840px;max-width:94vw;display:none;overflow:hidden;border:1px solid rgba(255,255,255,0.15);border-radius:24px;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 24px 64px rgba(0,0,0,0.10),0 0 0 1px rgba(0,0,0,0.02);">
   <div id="reschedule-root"></div>
 </div>
 

@@ -1,60 +1,79 @@
 import { StrictMode, useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { supabase } from "@/supabase";
-import { LoginPage } from "@/components/ui/login-page";
+import { createRoot, Root } from "react-dom/client";
+import { supabase } from "./supabase";
+import "./style.css";
+
+// Extend window type for the global root
+declare global {
+  interface Window {
+    __reactRoot?: Root;
+  }
+}
 
 function AuthGate() {
   const [session, setSession] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const app = document.querySelector(".app-layout");
+    // Safety timeout to prevent permanent loading if getSession() hangs
+    const timeout = setTimeout(() => {
+      setSession(prev => prev === null ? false : prev);
+    }, 3000);
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      const hasSession = !!s;
-      setSession(hasSession);
-      if (hasSession && app) app.classList.add("app-layout-visible");
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const hasSession = !!session;
-      setSession(hasSession);
-      if (hasSession && app) {
-        app.classList.add("app-layout-visible");
-      } else if (app) {
-        app.classList.remove("app-layout-visible");
+    supabase.auth.getSession().then(({ data: { session: s }, error: sessionError }) => {
+      clearTimeout(timeout);
+      if (sessionError) {
+        console.error("Auth error:", sessionError);
+        setSession(false);
+        return;
+      }
+      
+      const loggedIn = !!s;
+      setSession(loggedIn);
+      if (loggedIn) {
+        document.body.classList.add('logged-in');
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Only listen for explicit sign-out
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _s) => {
+      if (event === 'SIGNED_OUT') {
+        setSession(false);
+        document.body.classList.remove('logged-in');
+      }
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Loading — show spinner while getSession() resolves
   if (session === null) {
     return (
-      <div className="login-overlay">
-        <div className="login-card">
-          <div className="login-logo">
-            <img
-              src="https://www.scalepods.co/_next/image?url=%2Fscalepods-navbar-logo.png&w=256&q=75&dpl=dpl_DX4go8Z4Sy3vBkyqLBb8kxYXVNrc"
-              alt="ScalePods"
-            />
-          </div>
-          <div className="login-loader" />
-        </div>
+      <div className="login-overlay active-loading">
+        <div className="login-loader" />
+        <div className="login-loader-text" style={{ marginTop: '12px', color: '#94a3b8' }}>Establishing secure connection...</div>
       </div>
     );
   }
 
-  if (session) {
-    return null;
-  }
+  // Logged in — render nothing, dashboard visible via body.logged-in CSS
+  if (session) return null;
 
-  return <LoginPage />;
+  // Not logged in — our static HTML landing page in index.html is visible.
+  // We return null here to avoid rendering a duplicate React-based landing page.
+  return null;
 }
 
-createRoot(document.getElementById("react-root")!).render(
-  <StrictMode>
-    <AuthGate />
-  </StrictMode>
-);
+const container = document.getElementById("react-root");
+if (container) {
+  if (!window.__reactRoot) {
+    window.__reactRoot = createRoot(container);
+  }
+  window.__reactRoot.render(
+    <StrictMode>
+      <AuthGate />
+    </StrictMode>
+  );
+}
