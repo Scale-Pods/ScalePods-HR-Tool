@@ -42,5 +42,6 @@ next-env.d.ts
 !*.config.mjs
 !*.config.ts
 *.html
+!reset-password.html
 *.log
 src_old/
