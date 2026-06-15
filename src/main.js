@@ -262,7 +262,8 @@ const pages = {
   meetings: 'Interview Center',
   'campaign-detail': 'Campaign Details',
   'offer-letter': 'Offer Letter',
-  users: 'User Management'
+  users: 'User Management',
+  kanban: 'Kanban'
 };
 
 window.toggleSidebar = function() {
@@ -277,7 +278,8 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
     meetings: 'page-meetings',
     'campaign-detail': 'page-campaign-detail',
     'offer-letter': 'page-offer-letter',
-    users: 'page-users'
+    users: 'page-users',
+    kanban: 'page-kanban'
   };
 
   const pageTitle = pages[id] || 'Dashboard';
