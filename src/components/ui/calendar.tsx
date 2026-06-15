@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,20 +43,32 @@ function Calendar({
     outside: "text-muted-foreground data-selected:bg-accent/50 data-selected:text-muted-foreground",
     hidden: "invisible",
     week_number: "size-9 p-0 text-xs font-medium text-muted-foreground/80",
+    month_grid: "",
   };
 
-  const mergedClassNames: any = Object.keys(defaultClassNames).reduce(
-    (acc, key) => ({
-      ...acc,
-      [key]: classNames?.[key as keyof typeof classNames]
-        ? cn(
-            defaultClassNames[key as keyof typeof defaultClassNames],
-            classNames[key as keyof typeof classNames],
-          )
-        : defaultClassNames[key as keyof typeof defaultClassNames],
-    }),
-    {} as any,
-  );
+  const mergedClassNames: any = {
+    ...Object.keys(defaultClassNames).reduce(
+      (acc, key) => ({
+        ...acc,
+        [key]: classNames?.[key as keyof typeof classNames]
+          ? cn(
+              defaultClassNames[key as keyof typeof defaultClassNames],
+              classNames[key as keyof typeof classNames],
+            )
+          : defaultClassNames[key as keyof typeof defaultClassNames],
+      }),
+      {} as any,
+    ),
+    ...Object.keys(classNames || {}).reduce(
+      (acc, key) => {
+        if (!(key in defaultClassNames)) {
+          (acc as any)[key] = classNames![key as keyof typeof classNames];
+        }
+        return acc;
+      },
+      {} as any,
+    ),
+  };
 
   const defaultComponents = {
     Chevron: (props: any) => {

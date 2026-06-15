@@ -10,7 +10,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/n8n-proxy': {
-        target: 'https://n8n.srv1010832.hstgr.cloud',
+        target: 'https://n8n.srv1711190.hstgr.cloud',
         changeOrigin: true,
         rewrite: p => p.replace('/n8n-proxy', ''),
       },

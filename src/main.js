@@ -5,7 +5,8 @@ const pages = {
   campaigns: 'Campaigns',
   create: 'Create Campaign',
   meetings: 'Interview Center',
-  'campaign-detail': 'Campaign Details'
+  'campaign-detail': 'Campaign Details',
+  'offer-letter': 'Offer Letter'
 };
 
 window.toggleSidebar = function() {
@@ -33,6 +34,9 @@ window.navigate = function(id, clickedNavItem) {
   }
   if (id === 'meetings') {
     window.loadMeetingsPage();
+  }
+  if (id === 'offer-letter') {
+    window.initOfferLetter();
   }
 };
 
@@ -80,6 +84,7 @@ function buildMeetingsEventMap() {
         link:      c['Round ' + r + ' Meeting Link']  || c['Round ' + r + ' Interview Link'] || '',
         eventId:   c['Round ' + r + ' Event ID']      || c['Round ' + r + ' EventID'] || '',
         interviewer: c['Round ' + r + ' Assigned']    || '',
+        email:     c.Email || '',
         color:     roundColors[r - 1],
         type:      roundTypes[r - 1]
       });
@@ -215,7 +220,7 @@ function updateDayDetail(day) {
         : '';
       var intEmail = ev.interviewer || '';
       var reschedHtml = ev.eventId 
-        ? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
+? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
         : '';
       return '<div style="padding:12px;background:var(--surface3);border-radius:10px;border:1px solid var(--border-color);margin-bottom:8px;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
@@ -288,7 +293,11 @@ window.submitCampaign = function() {
     rounds['round ' + i] = {
       interviewer: dd ? dd.dataset.value || '' : '',
       email: document.getElementById('round-' + i + '-email')?.value.trim() || '',
-      calendarLink: document.getElementById('round-' + i + '-calendar')?.value.trim() || ''
+      calendarLink: document.getElementById('round-' + i + '-calendar')?.value.trim() || '',
+      startDate: document.getElementById('round-' + i + '-start')?.value || '',
+      endDate: document.getElementById('round-' + i + '-end')?.value || '',
+      timeFrom: document.getElementById('round-' + i + '-time-from')?.value || '',
+      timeTo: document.getElementById('round-' + i + '-time-to')?.value || ''
     };
   }
 
@@ -303,11 +312,12 @@ window.submitCampaign = function() {
     startDate: document.getElementById('campaign-start').value,
     endDate: document.getElementById('campaign-end').value,
     location: document.getElementById('campaign-location').value.trim(),
-    candidates: document.getElementById('campaign-candidates').value.trim(),
+
     salaryMin: document.getElementById('campaign-salary-min').value.trim(),
     salaryMax: document.getElementById('campaign-salary-max').value.trim(),
     joining: document.getElementById('campaign-joining').value,
     status: document.getElementById('active-toggle').classList.contains('on') ? 'active' : 'paused',
+    quickHire: document.getElementById('quick-hire-toggle')?.classList.contains('on') || false,
     rounds,
     roundCount,
     weights
@@ -317,7 +327,7 @@ window.submitCampaign = function() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> Submitting...';
 
-  fetch('/n8n-proxy/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=CampaignCreation', {
+  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=CampaignCreation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -337,6 +347,54 @@ window.submitCampaign = function() {
     alert('Failed to create campaign: ' + err.message);
   });
 };
+
+window._deleteCampaignName = '';
+window.deleteCampaign = function(name) {
+  if (!name) return;
+  window._deleteCampaignName = name;
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Wait 3s';
+  document.getElementById('delete-modal-title').textContent = 'Delete campaign "' + name + '"?';
+  document.getElementById('delete-overlay').classList.add('open');
+  document.getElementById('delete-modal').classList.add('open');
+  let count = 3;
+  btn._timer = setInterval(function() {
+    count--;
+    btn.textContent = 'Wait ' + count + 's';
+    if (count <= 0) {
+      clearInterval(btn._timer);
+      btn.textContent = 'Delete';
+      btn.disabled = false;
+    }
+  }, 1000);
+};
+
+window.closeDeleteModal = function() {
+  const btn = document.getElementById('delete-confirm-btn');
+  if (btn._timer) { clearInterval(btn._timer); btn._timer = null; }
+  document.getElementById('delete-overlay').classList.remove('open');
+  document.getElementById('delete-modal').classList.remove('open');
+};
+
+document.getElementById('delete-confirm-btn').addEventListener('click', function() {
+  const name = window._deleteCampaignName;
+  if (!name) return;
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> Deleting...';
+  closeDeleteModal();
+  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=DeleteCampaign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    setTimeout(loadCampaigns, 1000);
+  })
+  .catch(err => alert('Failed to delete campaign: ' + err.message));
+});
 
 window.spinRounds = function(e) {
   e.preventDefault();
@@ -369,11 +427,12 @@ window.updatePreview = function() {
 
 window.saveCampaignDraft = function() {
   updatePreview();
-  const ids = ['campaign-name','campaign-desc','campaign-jd','campaign-start','campaign-end','campaign-location','campaign-candidates','campaign-salary-min','campaign-salary-max','campaign-joining','campaign-rounds'];
+  const ids = ['campaign-name','campaign-desc','campaign-jd','campaign-start','campaign-end','campaign-location','campaign-salary-min','campaign-salary-max','campaign-joining','campaign-rounds'];
   const data = { _time: Date.now() };
   ids.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
   data._weights = {};
   ['skills','experience','education','jd'].forEach(k => { const el = document.getElementById('w-'+k); if (el) data._weights[k] = el.value; });
+  data._quickHire = document.getElementById('quick-hire-toggle')?.classList.contains('on') || false;
   data._rounds = {};
   const rc = parseInt(document.getElementById('campaign-rounds')?.value) || 1;
   for (let i = 1; i <= rc; i++) {
@@ -381,7 +440,11 @@ window.saveCampaignDraft = function() {
     data._rounds[i] = {
       interviewer: dd ? dd.dataset.value || '' : '',
       email: document.getElementById('round-'+i+'-email')?.value || '',
-      calendar: document.getElementById('round-'+i+'-calendar')?.value || ''
+      calendar: document.getElementById('round-'+i+'-calendar')?.value || '',
+      startDate: document.getElementById('round-'+i+'-start')?.value || '',
+      endDate: document.getElementById('round-'+i+'-end')?.value || '',
+      timeFrom: document.getElementById('round-'+i+'-time-from')?.value || '',
+      timeTo: document.getElementById('round-'+i+'-time-to')?.value || ''
     };
   }
   try { localStorage.setItem('campaignDraft', JSON.stringify(data)); } catch(e) {}
@@ -393,12 +456,14 @@ window.loadCampaignDraft = function() {
     if (!raw) return;
     const data = JSON.parse(raw);
     if (!data._time || Date.now() - data._time > 3600000) { localStorage.removeItem('campaignDraft'); return; }
-    const ids = ['campaign-name','campaign-desc','campaign-jd','campaign-start','campaign-end','campaign-location','campaign-candidates','campaign-salary-min','campaign-salary-max','campaign-joining'];
-    ids.forEach(id => { const el = document.getElementById(id); if (el && data[id] !== undefined) el.value = data[id]; });
+    const ids = ['campaign-name','campaign-desc','campaign-jd','campaign-start','campaign-end','campaign-location','campaign-salary-min','campaign-salary-max','campaign-joining'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el && data[id] !== undefined) { el.value = data[id]; window.updateDateDisplay(el); } });
     const rcEl = document.getElementById('campaign-rounds');
     if (rcEl && data['campaign-rounds']) rcEl.value = data['campaign-rounds'];
     if (data['campaign-rounds']) generateRounds();
     setTimeout(() => {
+      const qh = document.getElementById('quick-hire-toggle');
+      if (qh && data._quickHire === true) qh.classList.add('on');
       if (data._weights) { Object.keys(data._weights).forEach(k => { const el = document.getElementById('w-'+k); if (el) el.value = data._weights[k]; }); window.validateWeights?.(); }
       if (data._rounds) {
         Object.keys(data._rounds).forEach(i => {
@@ -409,6 +474,14 @@ window.loadCampaignDraft = function() {
           if (em && r.email) em.value = r.email;
           const ca = document.getElementById('round-'+i+'-calendar');
           if (ca && r.calendar) ca.value = r.calendar;
+          const rs = document.getElementById('round-'+i+'-start');
+          if (rs && r.startDate) { rs.value = r.startDate; window.updateDateDisplay(rs); }
+          const re = document.getElementById('round-'+i+'-end');
+          if (re && r.endDate) { re.value = r.endDate; window.updateDateDisplay(re); }
+          const tf = document.getElementById('round-'+i+'-time-from');
+          if (tf && r.timeFrom) { tf.value = r.timeFrom; const tfs = document.getElementById('round-'+i+'-time-from-text'); if (tfs) { tfs.textContent = formatTimeDisplay(r.timeFrom); tfs.classList.remove('placeholder'); } }
+          const tt = document.getElementById('round-'+i+'-time-to');
+          if (tt && r.timeTo) { tt.value = r.timeTo; const tts = document.getElementById('round-'+i+'-time-to-text'); if (tts) { tts.textContent = formatTimeDisplay(r.timeTo); tts.classList.remove('placeholder'); } }
         });
       }
     }, 50);
@@ -417,9 +490,11 @@ window.loadCampaignDraft = function() {
 
 window.clearCampaignDraft = function() {
   localStorage.removeItem('campaignDraft');
-  document.querySelectorAll('#page-create input, #page-create textarea').forEach(el => { if (el.id !== 'campaign-rounds') el.value = ''; });
+  document.querySelectorAll('#page-create input, #page-create textarea').forEach(el => { if (el.id !== 'campaign-rounds') { el.value = ''; window.updateDateDisplay(el); } });
   const rcEl = document.getElementById('campaign-rounds');
   if (rcEl) rcEl.value = '1';
+  const qh = document.getElementById('quick-hire-toggle');
+  if (qh) qh.classList.remove('on');
   document.querySelectorAll('.create-weight-input').forEach(el => el.value = '25');
   generateRounds();
   window.validateWeights?.();
@@ -493,7 +568,49 @@ window.selectInterviewer = function(el, round) {
 document.addEventListener('click', function(e) {
   document.querySelectorAll('.create-dropdown-panel.open').forEach(p => p.classList.remove('open'));
   document.querySelectorAll('.create-dropdown.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.create-time-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.create-time-dropdown.open').forEach(d => d.classList.remove('open'));
 });
+
+window.updateDateDisplay = function(input) {
+  const textId = input.id + '-text';
+  const textEl = document.getElementById(textId);
+  if (!textEl) return;
+  if (input.value) {
+    const d = new Date(input.value + 'T00:00:00');
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    textEl.textContent = d.toLocaleDateString('en-US', options);
+    textEl.classList.remove('placeholder');
+  } else {
+    textEl.textContent = textId.includes('start') ? 'Select start' : textId.includes('end') ? 'Select end' : 'Select date';
+    textEl.classList.add('placeholder');
+  }
+};
+
+window.syncRoundDates = function() {
+  const num = parseInt(document.getElementById('campaign-rounds').value) || 1;
+  for (let i = 1; i <= num; i++) {
+    const startEl = document.getElementById('round-' + i + '-start');
+    const endEl = document.getElementById('round-' + i + '-end');
+    if (startEl && endEl) {
+      endEl.min = startEl.value || '';
+      if (endEl.value && endEl.value < endEl.min) {
+        endEl.value = endEl.min;
+        updateDateDisplay(endEl);
+      }
+    }
+    if (i < num) {
+      const nextStartEl = document.getElementById('round-' + (i + 1) + '-start');
+      if (endEl && nextStartEl) {
+        nextStartEl.min = endEl.value || '';
+        if (nextStartEl.value && nextStartEl.value < nextStartEl.min) {
+          nextStartEl.value = nextStartEl.min;
+          updateDateDisplay(nextStartEl);
+        }
+      }
+    }
+  }
+};
 
 window.generateRounds = function() {
   const num = Math.min(Math.max(parseInt(document.getElementById('campaign-rounds').value) || 1, 1), 3);
@@ -527,6 +644,53 @@ window.generateRounds = function() {
       '<div class="create-field" style="margin-bottom:0;">' +
         '<label class="create-label">Calendar Link</label>' +
         '<input type="text" id="round-' + i + '-calendar" placeholder="https://calendly.com/..." class="create-input">' +
+      '</div>' +
+      '<div class="create-round-dates">' +
+        '<div class="create-round-dates-head">' +
+          '<i class="ti ti-calendar-event"></i> Round Schedule' +
+        '</div>' +
+        '<div class="create-row-2">' +
+          '<div class="create-field">' +
+            '<label class="create-label">Start Date <span class="required">*</span></label>' +
+            '<div class="create-date-wrap">' +
+              '<div class="create-date-trigger">' +
+                '<i class="ti ti-calendar"></i>' +
+                '<span class="create-date-value placeholder" id="round-' + i + '-start-text">Select start</span>' +
+                '<i class="ti ti-chevron-down create-date-chevron"></i>' +
+              '</div>' +
+              '<input type="date" id="round-' + i + '-start" onchange="updateDateDisplay(this);syncRoundDates()">' +
+            '</div>' +
+            '<div class="create-time-dropdown" id="round-' + i + '-time-from-dd">' +
+              '<label class="create-label" style="font-size:11px;margin-bottom:4px;display:block;">From</label>' +
+              '<div class="create-time-trigger" onclick="toggleTimeDropdown(event, ' + i + ', \'from\')">' +
+                '<span id="round-' + i + '-time-from-text" class="placeholder">Select time</span>' +
+                '<i class="ti ti-chevron-down"></i>' +
+              '</div>' +
+              '<div class="create-time-panel" id="round-' + i + '-time-from-panel"></div>' +
+              '<input type="hidden" id="round-' + i + '-time-from">' +
+            '</div>' +
+          '</div>' +
+          '<div class="create-field">' +
+            '<label class="create-label">End Date <span class="required">*</span></label>' +
+            '<div class="create-date-wrap">' +
+              '<div class="create-date-trigger">' +
+                '<i class="ti ti-calendar"></i>' +
+                '<span class="create-date-value placeholder" id="round-' + i + '-end-text">Select end</span>' +
+                '<i class="ti ti-chevron-down create-date-chevron"></i>' +
+              '</div>' +
+              '<input type="date" id="round-' + i + '-end" onchange="updateDateDisplay(this);syncRoundDates()">' +
+            '</div>' +
+            '<div class="create-time-dropdown" id="round-' + i + '-time-to-dd">' +
+              '<label class="create-label" style="font-size:11px;margin-bottom:4px;display:block;">To</label>' +
+              '<div class="create-time-trigger" onclick="toggleTimeDropdown(event, ' + i + ', \'to\')">' +
+                '<span id="round-' + i + '-time-to-text" class="placeholder">Select time</span>' +
+                '<i class="ti ti-chevron-down"></i>' +
+              '</div>' +
+              '<div class="create-time-panel" id="round-' + i + '-time-to-panel"></div>' +
+              '<input type="hidden" id="round-' + i + '-time-to">' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>';
     container.appendChild(div);
     const panel = document.getElementById('round-' + i + '-panel');
@@ -540,13 +704,64 @@ window.generateRounds = function() {
       item.onclick = function() { selectInterviewer(this, i); };
       panel.appendChild(item);
     });
+    populateTimeSlots(i);
+    if (i > 1) {
+      const prevEnd = document.getElementById('round-' + (i - 1) + '-end');
+      const curStart = document.getElementById('round-' + i + '-start');
+      if (prevEnd && prevEnd.value) curStart.min = prevEnd.value;
+    }
   }
 };
+
+function populateTimeSlots(round) {
+  ['from', 'to'].forEach(suffix => {
+    const panel = document.getElementById('round-' + round + '-time-' + suffix + '-panel');
+    if (!panel) return;
+    const slots = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
+    slots.forEach(val => {
+      const display = formatTimeDisplay(val);
+      const item = document.createElement('div');
+      item.className = 'time-slot';
+      item.textContent = display;
+      item.dataset.value = val;
+      item.onclick = function() { selectTime(this, round, suffix); };
+      panel.appendChild(item);
+    });
+  });
+}
+
+window.toggleTimeDropdown = function(e, round, suffix) {
+  e.stopPropagation();
+  document.querySelectorAll('.create-time-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.create-time-dropdown.open').forEach(d => d.classList.remove('open'));
+  const panel = document.getElementById('round-' + round + '-time-' + suffix + '-panel');
+  panel.classList.toggle('open');
+  document.getElementById('round-' + round + '-time-' + suffix + '-dd').classList.toggle('open');
+};
+
+window.selectTime = function(el, round, suffix) {
+  const text = document.getElementById('round-' + round + '-time-' + suffix + '-text');
+  text.textContent = el.textContent;
+  text.classList.remove('placeholder');
+  document.getElementById('round-' + round + '-time-' + suffix).value = el.dataset.value;
+  document.getElementById('round-' + round + '-time-' + suffix + '-panel').classList.remove('open');
+  document.getElementById('round-' + round + '-time-' + suffix + '-dd').classList.remove('open');
+};
+
+function formatTimeDisplay(val) {
+  if (!val) return '';
+  const parts = val.split(':');
+  const h = parseInt(parts[0]);
+  const m = parts[1];
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const label = h === 0 ? '12' : h > 12 ? (h - 12) : h;
+  return label + (m === '30' ? ':30' : '') + ' ' + ampm;
+}
 
 window.loadInterviewers = function() {
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing',
-    'https://n8n.srv1010832.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing'
+    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing'
   ];
   function tryFetch(i) {
     if (i >= urls.length) return;
@@ -605,7 +820,7 @@ window.fetchAllCandidatesForMeetings = function() {
     var cb = Date.now();
     var urls = [
       '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb,
-      'https://n8n.srv1010832.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb
+      'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodeURIComponent(name) + '&_=' + cb
     ];
     function tryOne(i) {
       if (i >= urls.length) { done(); return; }
@@ -654,6 +869,7 @@ function buildMeetingsEventMap2(candidates) {
         link:        c['Round ' + r + ' Meeting Link']  || c['Round ' + r + ' Interview Link'] || '',
         eventId:     c['Round ' + r + ' Event ID']      || c['Round ' + r + ' EventID'] || '',
         interviewer: c['Round ' + r + ' Assigned']      || '',
+        email:       c.Email || '',
         color:       roundColors[r - 1],
         type:        roundTypes[r - 1]
       });
@@ -779,7 +995,7 @@ function renderLiveDailyTrack(filter) {
       : '';
     var intEmail = ev.interviewer || '';
     var reschedHtml = ev.eventId 
-      ? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
+      ? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
       : '';
     return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--separator);">' +
       '<div style="width:10px;height:10px;border-radius:50%;background:' + ev.color + ';flex-shrink:0;margin-top:3px;"></div>' +
@@ -846,7 +1062,7 @@ window.loadDashboardData = function(campaignName) {
   var cb = Date.now();
   var urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
-    'https://n8n.srv1010832.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
+    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
 
   function tryFetch(i) {
@@ -958,7 +1174,7 @@ function updateDashboardMetrics(candidates, campaign) {
   if (greeting) {
     var hours = new Date().getHours();
     var timeStr = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'evening';
-    var userName = 'Sarah'; // Could be dynamic if user info was available
+    var userName = 'Raunak';
     greeting.innerHTML = 'Good ' + timeStr + ', <span class="hero-name">' + userName + '</span>';
   }
 
@@ -1272,7 +1488,7 @@ window.loadCampaigns = function() {
   grid.innerHTML = '<div class="campaigns-loading" style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3);font-size:14px;"><i class="ti ti-loader" style="animation:spin 1s linear infinite;display:block;font-size:28px;margin-bottom:12px;"></i>Loading campaigns...</div>';
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns',
-    'https://n8n.srv1010832.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns'
+    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns'
   ];
   function tryFetch(i) {
     if (i >= urls.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="ti ti-cloud-off"></i><div class="empty-state-title">Failed to load</div><div class="empty-state-desc">Could not reach the server. Try again later.</div></div>'; document.getElementById('campaign-badge').textContent = '0'; return; }
@@ -1288,6 +1504,8 @@ window.loadCampaigns = function() {
         document.getElementById('campaign-badge').textContent = list.length;
         window._campaignList = list;
         window.populateCampaignSelector();
+        var meetingsActive = document.getElementById('page-meetings')?.classList.contains('active');
+        if (meetingsActive) window.fetchAllCandidatesForMeetings();
         var dashActive = document.getElementById('page-dashboard')?.classList.contains('active');
         if (dashActive) {
           var sel = document.getElementById('campaign-select');
@@ -1314,7 +1532,7 @@ window.loadCampaigns = function() {
             '<div class="campaign-actions">' +
             '<button class="btn-outline" onclick="event.stopPropagation();viewCampaign(this.closest(\'.campaign-card\').dataset.campaignName)"><i class="ti ti-eye"></i> Analytics</button>' +
             '<button class="btn-icon-only" onclick="event.stopPropagation();alert(\'Edit\')"><i class="ti ti-pencil"></i></button>' +
-            '<button class="btn-icon-only danger" onclick="event.stopPropagation();alert(\'Delete\')"><i class="ti ti-trash"></i></button>' +
+            '<button class="btn-icon-only danger" onclick="event.stopPropagation();deleteCampaign(this.closest(\'.campaign-card\').dataset.campaignName)"><i class="ti ti-trash"></i></button>' +
             '</div></div>';
           card.style.cursor = 'pointer';
           card.onclick = function() { viewCampaign(card.dataset.campaignName); };
@@ -1359,7 +1577,7 @@ window.loadCampaignDetail = function() {
   if (searchEl) {
     if (window._searchInterval) { clearInterval(window._searchInterval); window._searchInterval = null; }
     if (window._typeTimer) { clearTimeout(window._typeTimer); window._typeTimer = null; }
-    const names = ['Mithul CE', 'Yash Rao', 'Viraj Gosawami', 'Abeer Gandhi', 'Mohammad Fazal Attar', 'Deep Bartaria', 'Tushar Funde'];
+    const names = ['Mithul CE', 'Yash Rao', 'Viraj Goswami', 'Abeer Gandhi', 'Mohammad Fazal Attar', 'Deep Bartaria', 'Tushar Funde', 'Naveen R'];
     let idx = 0, pos = 0, deleting = false, paused = false;
     var TYPING_SPEED = 60, DELETING_SPEED = 30, PAUSE_MS = 2000;
     function typePlaceholder() {
@@ -1540,16 +1758,19 @@ window.loadCampaignDetail = function() {
         var fd = new FormData();
         for (var i = 0; i < files.length; i++) { fd.append('resumes', files[i]); }
         fd.append('campaignName', window._campaignDetailName || '');
-        fetch('/n8n-proxy/webhook/d0216ff0-8b3c-4922-b9a5-11654316948f', { method: 'POST', body: fd })
+        fetch('https://n8n.srv1711190.hstgr.cloud/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
           .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status);
-            fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> ' + files.length + ' file(s) uploaded. Resume is being scored. Check back later.';
-            submitBtn.disabled = false;
-            window._pendingFiles = [];
-            renderFileList();
-            var du = document.getElementById('drop-zone');
-            if (du) du.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px;"><i class="ti ti-cloud-upload" style="font-size:32px;display:block;margin-bottom:8px;color:var(--text3);"></i>Upload resumes after they are scored</div>';
-            var dh = document.getElementById('drop-hint');
-            if (dh) dh.textContent = 'Supports PDF and image files';
+            fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> Resume has been uploaded and is being processed and scored';
+            submitBtn.disabled = true;
+            setTimeout(function() {
+              fb.style.display = 'none';
+              fb.innerHTML = '';
+              submitBtn.disabled = false;
+              window._pendingFiles = [];
+              renderFileList();
+              var du = document.getElementById('drop-zone');
+              if (du) du.innerHTML = '<div style="padding:40px 20px;text-align:center;"><i class="ti ti-cloud-upload" style="font-size:32px;display:block;margin-bottom:8px;color:var(--text3);"></i><span style="color:var(--text3);font-size:13px;">Drag &amp; drop resumes here, or click to browse</span></div>';
+            }, 3000);
           })
           .catch(function(e) {
             fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> Upload failed: ' + e.message;
@@ -1568,7 +1789,7 @@ window.loadCampaignDetail = function() {
   const cb = Date.now();
   const urls = [
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
-    'https://n8n.srv1010832.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
+    'https://n8n.srv1711190.hstgr.cloud/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
   document.getElementById('candidate-grid').innerHTML = '';
   renderSkeleton();
@@ -1818,11 +2039,33 @@ function renderStatusBreakdown() {
   }).join('');
 }
 
+/* ─── View Toggle ─── */
+window._candidateView = 'grid';
+
+window.toggleCandidateView = function(mode) {
+  window._candidateView = mode;
+  document.querySelectorAll('.view-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.view === mode);
+  });
+  var grid = document.getElementById('candidate-grid');
+  if (grid) {
+    grid.style.opacity = '0';
+    grid.style.transform = 'translateY(6px)';
+    setTimeout(function() {
+      grid.classList.toggle('list-view', mode === 'list');
+      grid.style.opacity = '';
+      grid.style.transform = '';
+    }, 200);
+  }
+  filterCandidates();
+};
+
 /* ─── Render Candidates ─── */
 
 function renderCandidates(list) {
   var grid = document.getElementById('candidate-grid');
   if (!grid) return;
+  grid.classList.toggle('list-view', window._candidateView === 'list');
   var allData = window._candidateData || [];
   grid.innerHTML = list.map(function(c, idx) {
     var origIdx = allData.indexOf(c);
@@ -1868,12 +2111,14 @@ function renderCandidates(list) {
     }
     journeyHtml += '</div>';
 
+    var rejected = ['Resume Decision', 'Round 1 Decision', 'Round 2 Decision', 'Round 3 Decision', 'Call Decision'].some(function(d) { var v = (c[d] || '').toLowerCase(); return v === 'rejected' || v === 'no'; });
+
     var subParts = [];
     if (role !== '—') subParts.push(role);
     if (city) subParts.push(city);
     if (id) subParts.push('#' + id);
 
-    return '<div class="cand-card" data-idx="' + origIdx + '" onclick="openCandidateDrawer(' + origIdx + ')">' +
+    return '<div class="cand-card' + (rejected ? ' cand-card-rejected' : '') + '" data-idx="' + origIdx + '" onclick="openCandidateDrawer(' + origIdx + ')">' +
       '<div class="cand-card-top">' +
         '<div class="cand-avatar" style="width:38px;height:38px;font-size:14px;background:' + avColor + ';">' + initials + '</div>' +
         '<div class="cand-card-info">' +
@@ -1886,6 +2131,7 @@ function renderCandidates(list) {
       '<div class="cand-card-chips" style="padding-top:2px;">' + journeyHtml + '</div>' +
       (tagsHtml ? '<div class="cand-card-tags">' + tagsHtml + '</div>' : '') +
       (function() {
+        if (rejected) return '<div class="card-decision" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;border-top:1px solid var(--separator);margin-top:6px;"><span style="font-size:10px;font-weight:600;color:var(--red);">Rejected</span></div>';
         var skipResume = isDecided(c['Resume Decision']);
         var skipR1 = skipResume && roundList.length >= 1 && isDecided(c['Round 1 Decision']);
         var skipR2 = skipR1 && roundList.length >= 2 && isDecided(c['Round 2 Decision']);
@@ -1913,29 +2159,29 @@ window.cardDecision = function(idx, round, value, btn) {
   var c = cands[idx];
   if (!c) return;
   var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
+  var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
   c[fieldMap[round]] = value === 'yes' ? 'Selected' : 'Rejected';
-  fetch('https://n8n.srv1010832.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b', {
+  fetch('https://n8n.srv1711190.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round] || round), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', [round]: { decision: value, comments: '' } })
+    body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: round, decision: value })
   }).catch(function() {});
-  if (btn) {
-    var section = btn.closest('.card-decision');
-    if (section) {
-      var accepted = value === 'yes';
-      section.innerHTML =
-        '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' +
-          (accepted ? 'Accepted' : 'Rejected') +
-        '</span>' +
-        '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:' +
-          (accepted ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)') +
-          ';color:' + (accepted ? 'var(--emerald)' : 'var(--red)') +
-          ';">' +
-          (accepted ? '<i class="ti ti-circle-check"></i> Accepted' : '<i class="ti ti-circle-x"></i> Rejected') +
-        '</span>';
-    }
-  }
   var drawerBtn = document.querySelector('#decision-container [data-dr="' + round + '"][data-dv="' + value + '"]');
   if (drawerBtn) window.selectDecision(drawerBtn, round, value);
+  var card = btn && btn.closest('.cand-card');
+  if (card) {
+    if (value === 'no') {
+      card.classList.add('cand-card-rejected');
+      var decisions = card.querySelectorAll('.card-decision');
+      decisions.forEach(function(d) { d.innerHTML = '<span style="font-size:10px;font-weight:600;color:var(--red);">Rejected</span>'; });
+    } else {
+      var section = btn.closest('.card-decision');
+      if (section) {
+        section.innerHTML =
+          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Accepted</span>' +
+          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> Accepted</span>';
+      }
+    }
+  }
 };
 
 /* ─── Filter Candidates ─── */
@@ -2060,6 +2306,9 @@ function renderDrawerContent(c) {
   var gaps = c.Gaps || '—';
   var fitAnalysis = c['Fit Analysis'] || '—';
   var summary = c.Summary || '—';
+  var careerProgression = c['Career_Progression'] || c['Career Progression'] || '—';
+  var stabilityAnalysis = c['Stability_Analysis'] || c['Stability Analysis'] || '—';
+  var industryRelevance = c['Industry_Relevence'] || c['Industry Relevance'] || '—';
   var riskFlags = '';
   if (gaps && gaps.toLowerCase().indexOf('risk flag') !== -1) {
     var parts = gaps.split('|');
@@ -2209,6 +2458,12 @@ function renderDrawerContent(c) {
     '<div style="margin-bottom:12px;"><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Strengths</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">' + (strengths !== '—' ? strengths.replace(/\n/g, '<br>') : '—') + '</div></div>' +
     '<div><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Gaps</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">' + (gaps !== '—' ? gaps.replace(/\n/g, '<br>') : '—') + '</div></div>' +
     (riskFlags ? '<div style="margin-top:12px;padding:8px 12px;background:rgba(239,68,68,0.08);border-radius:6px;font-size:12px;color:var(--red);"><strong>Risk Flags:</strong> ' + riskFlags + '</div>' : '') +
+    '</div>' +
+    '<div class="drawer-section-title" style="font-size:12px;color:var(--text2);padding:0 0 10px 0;border-bottom:1px solid var(--separator);margin-bottom:12px;margin-top:16px;"><i class="ti ti-chart-bar"></i> Advanced Analysis</div>' +
+    '<div class="detail-card-sm">' +
+    '<div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Career Progression</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">' + careerProgression + '</div></div>' +
+    '<div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Stability Analysis</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">' + stabilityAnalysis + '</div></div>' +
+    '<div><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Industry Relevance</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">' + industryRelevance + '</div></div>' +
     '</div>';
 
   /* Questionnaire content HTML */
@@ -2411,42 +2666,54 @@ window.submitDecisions = function() {
     campaignName: campaignName
   };
 
+  var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
   var rounds = ['resume', 'round1', 'round2', 'round3'];
+  var toSubmit = [];
   rounds.forEach(function(round) {
-    var roundData = {};
     var selectedBtn = document.querySelector('#decision-container [data-dr="' + round + '"].dr-selected');
-    if (selectedBtn) {
-      roundData.decision = selectedBtn.getAttribute('data-dv') || '';
-    }
+    if (!selectedBtn) return;
+    var roundData = {
+      name: name,
+      email: email,
+      campaignName: campaignName,
+      decision: selectedBtn.getAttribute('data-dv') || ''
+    };
     var commentsEl = document.getElementById('dc-' + round);
     if (commentsEl && commentsEl.value.trim()) {
       roundData.comments = commentsEl.value;
     }
-    if (Object.keys(roundData).length) {
-      payload[round] = roundData;
-    }
+    toSubmit.push({ action: actionMap[round] || round, data: roundData });
   });
+
+  if (!toSubmit.length) return;
 
   var btn = document.getElementById('decision-submit-btn');
   var feedback = document.getElementById('decision-feedback');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;display:inline-block;"></i> Submitting...'; }
 
-  fetch('https://n8n.srv1010832.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.text();
-  })
-  .then(function() {
-    if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(16,185,129,0.1);color:var(--emerald);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-check"></i> Decisions submitted successfully!</div>'; }
-    if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Submitted'; btn.style.background = 'var(--emerald)'; }
-  })
-  .catch(function(err) {
-    if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(239,68,68,0.1);color:var(--red);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-alert-triangle"></i> Failed: ' + err.message + '</div>'; }
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Submit Decisions'; }
+  var completed = 0;
+  var total = toSubmit.length;
+  var hasError = false;
+
+  toSubmit.forEach(function(item) {
+    fetch('https://n8n.srv1711190.hstgr.cloud/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(item.action), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item.data)
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      completed++;
+      if (completed === total && !hasError) {
+        if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(16,185,129,0.1);color:var(--emerald);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-check"></i> Decisions submitted successfully!</div>'; }
+        if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Submitted'; btn.style.background = 'var(--emerald)'; }
+      }
+    })
+    .catch(function(err) {
+      hasError = true;
+      if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(239,68,68,0.1);color:var(--red);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-alert-triangle"></i> Failed: ' + err.message + '</div>'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Submit Decisions'; }
+    });
   });
 };
 
@@ -2457,7 +2724,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let greeting = 'Good evening';
     if (hr < 12) greeting = 'Good morning';
     else if (hr < 17) greeting = 'Good afternoon';
-    greetingEl.innerHTML = greeting + ', <span class="hero-name">Sarah</span>';
+    greetingEl.innerHTML = greeting + ', <span class="hero-name">Raunak</span>';
   }
   window.buildCalendar();
   window.loadInterviewers();
@@ -2469,7 +2736,6 @@ document.addEventListener('DOMContentLoaded', function() {
   window.loadDashboardData('');
   document.querySelector('#page-create .create-wrapper')?.addEventListener('input', window.saveCampaignDraft);
 
-  initCursorReactive();
 });
 
 document.addEventListener('click', function(e) {
@@ -2478,41 +2744,92 @@ document.addEventListener('click', function(e) {
     console.log("Reschedule button clicked", target.dataset);
     var eventId = target.dataset.eventId;
     var email = target.dataset.email;
+    var candidate = target.dataset.candidate;
     if (window.openRescheduleModal) {
       console.log("Calling window.openRescheduleModal");
-      window.openRescheduleModal({ eventId: eventId, email: email });
+      window.openRescheduleModal({ eventId: eventId, email: email, candidate: candidate });
     } else {
       console.error("window.openRescheduleModal is not defined!");
     }
   }
 });
 
-function initCursorReactive() {
-  document.querySelectorAll('.kpi-card, .analytics-card, .widget-card, .hero-metric, .campaign-card, .mini-stat, .cap-card').forEach(card => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      const rx = ((y - cy) / cy) * -1;
-      const ry = ((x - cx) / cx) * 1;
-
-      card.style.setProperty('--rx', rx + 'deg');
-      card.style.setProperty('--ry', ry + 'deg');
-
-      const glowX = (x / rect.width) * 100;
-      const glowY = (y / rect.height) * 100;
-      card.style.setProperty('--gx', glowX + '%');
-      card.style.setProperty('--gy', glowY + '%');
-
-      card.style.transform = `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px) scale(1.005)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = '';
-      card.style.setProperty('--rx', '0deg');
-      card.style.setProperty('--ry', '0deg');
-    });
-  });
+/* ─── Offer Letter ─── */
+function getOfferLetterHTML(name, role, company, stipend, dateVal, type) {
+  name = name || 'Mithul';
+  role = role || 'AI Automations Intern';
+  company = company || 'ScalePods';
+  stipend = stipend || '5,000';
+  var title = type === 'fulltime' ? 'Offer of Employment' : 'Internship Appointment Letter';
+  var welcome = type === 'fulltime' ? 'Congratulations!' : 'Welcome to ' + company + '!';
+  var dateDisplay = '—';
+  if (dateVal) {
+    var d = new Date(dateVal + 'T00:00:00');
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    dateDisplay = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+  return '<div class="ol-root"><style>@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap");.ol-root{--bg:#d0eaf7;font-family:"Open Sans",sans-serif;display:flex;justify-content:center;padding:0}.ol-root .pw{position:relative;width:794px;min-height:1123px;border-radius:36px;overflow:hidden;background:transparent}.ol-root .blob{position:absolute;inset:0;z-index:0}.ol-root .blob svg{width:100%;height:100%}.ol-root .ic{position:relative;z-index:1;margin:18px;background:#fff;border-radius:24px;padding:0 54px 54px;min-height:calc(1123px - 36px)}.ol-root .la{text-align:center;padding:28px 0 20px}.ol-root .lt{font-family:"Montserrat",sans-serif;font-size:36px;font-weight:800;letter-spacing:-1px;color:#111;display:inline-flex;align-items:center;gap:2px}.ol-root .ltr{font-family:"Montserrat",sans-serif;font-size:22px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:2px;text-align:center;color:#111;margin:10px 0 14px}.ol-root .wl{font-family:"Montserrat",sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:3px;text-align:center;color:#2196c4;margin-bottom:28px}.ol-root .sr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}.ol-root .sal{font-size:14px;color:#111}.ol-root .sal strong{font-weight:700}.ol-root .dt{font-size:14px;font-weight:700;color:#111}.ol-root .bt{font-size:13.5px;line-height:1.75;color:#111;text-align:justify;margin-bottom:20px}.ol-root .st{font-size:14px;font-weight:700;color:#111;margin:18px 0 8px}.ol-root .tl{list-style:disc;padding-left:22px;margin-bottom:6px}.ol-root .tl li{font-size:13.5px;line-height:1.75;color:#111;text-align:justify;margin-bottom:3px}.ol-root .th{font-size:14px;font-weight:700;color:#111;margin:8px 0 14px}.ol-root .cl{font-size:13.5px;font-weight:700;text-align:center;color:#111;margin:28px 0 22px}.ol-root .sg{margin-bottom:26px}.ol-root .sg p{font-size:13.5px;line-height:1.8;color:#111}.ol-root .sg strong{font-weight:700}.ol-root .at{font-size:14px;font-weight:700;color:#111;margin-bottom:6px}.ol-root .ac{font-size:13.5px;line-height:1.75;color:#111;margin-bottom:22px}.ol-root .ac strong{font-weight:700}.ol-root .fr{display:flex;align-items:baseline;gap:8px;margin-bottom:18px;font-size:13.5px;color:#111;font-weight:600}.ol-root .fl{display:inline-block;width:130px;border-bottom:1.5px solid #111}</style><div class="pw"><div class="blob"><svg viewBox="0 0 794 1123" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"><path d="M0,0 Q60,80 30,200 Q0,320 40,440 Q80,560 20,680 Q-20,800 50,920 Q100,1020 0,1123 L794,1123 Q740,1040 780,920 Q820,800 760,680 Q700,560 760,440 Q820,320 760,200 Q700,80 794,0 Z" fill="#b2d9a0" opacity="0.7"/><path d="M0,0 Q200,-30 400,50 Q600,130 794,0 L794,220 Q640,160 500,200 Q360,240 200,180 Q100,140 0,180 Z" fill="#90cce8"/><path d="M0,0 L0,1123 Q60,1060 30,950 Q0,840 50,720 Q90,620 30,500 Q-10,400 40,300 Q80,200 0,100 Z" fill="#b2d9a0" opacity="0.9"/><path d="M794,0 L794,1123 Q730,1060 760,950 Q790,840 740,720 Q700,620 760,500 Q810,400 760,300 Q710,200 794,100 Z" fill="#90cce8" opacity="0.9"/><path d="M0,1123 Q200,1070 400,1100 Q600,1130 794,1080 L794,1123 Z" fill="#90cce8"/></svg></div><div class="ic"><div class="la"><span class="lt">ScaleP<svg width="24" height="24" viewBox="0 0 24 24" style="margin:0 1px;position:relative;top:2px;" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="none" stroke="#111" stroke-width="2.2"/><circle cx="12" cy="12" r="2.5" fill="#111"/><circle cx="12" cy="5" r="1.3" fill="#111"/><circle cx="12" cy="19" r="1.3" fill="#111"/><circle cx="5" cy="12" r="1.3" fill="#111"/><circle cx="19" cy="12" r="1.3" fill="#111"/><circle cx="7.5" cy="7.5" r="1.1" fill="#111"/><circle cx="16.5" cy="7.5" r="1.1" fill="#111"/><circle cx="7.5" cy="16.5" r="1.1" fill="#111"/><circle cx="16.5" cy="16.5" r="1.1" fill="#111"/></svg>ds</span></div><div class="ltr">' + title + '</div><div class="wl">' + welcome + '</div><div class="sr"><div class="sal">Dear <strong>' + name + '</strong>,</div><div class="dt">Date: ' + dateDisplay + '</div></div><p class="bt">We are pleased to engage you with ScalePods as an ' + role + ' to support us in building client automations, deploying them, and maintaining them, along with limited responsibilities in documentation and reporting.</p><div class="th">Terms of Engagement :</div><div class="st">Role &amp; Scope</div><ul class="tl"><li>Work with the ScalePods team from Monday to Saturday, with work timings fixed at 11:00 AM to 6:00 PM.</li><li>Assist in building, testing, and deploying client automation workflows to ensure smooth delivery and adoption.</li><li>Support in maintaining automation processes and ensuring recurring improvements.</li><li>Assist the team with 20% focus on documentation and reporting of automation projects.</li><li>All automations, processes, and related work created during this internship will be the sole proprietary property of ScalePods.</li></ul><div class="st">Compensation</div><ul class="tl"><li>You will be compensated with a monthly stipend of INR ' + stipend + ' (Five Thousand Only) as a fixed amount.</li><li>Payments will be made on a [monthly] basis.</li></ul><div class="st">Internship Status</div><ul class="tl"><li>This engagement is on an internship basis.</li><li>It does not create an employer-employee relationship. You are free to take up other work, provided there is no conflict of interest.</li></ul><div class="st">Confidentiality</div><ul class="tl"><li>You agree to maintain confidentiality of all client data, strategies, and proprietary information belonging to ScalePods.</li></ul><div class="st">Termination</div><ul class="tl"><li>Either party may terminate this engagement with 15 days prior written notice.</li></ul><div class="cl">We look forward to working with you and building impactful automations together.</div><div class="sg"><p>For <strong>ScalePods</strong></p><p><strong>Adnan Shaikh,</strong></p><p>Founder &amp; CEO</p></div><div class="at">Acknowledgement</div><p class="ac">I, <strong>' + name + '</strong>, accept the above terms and agree to work with ScalePods as an ' + role + ' under the conditions stated.</p><div class="fr">Date: <span class="fl"></span></div><div class="fr">Signature: <span class="fl"></span></div></div></div></div>';
 }
+
+function scaleOfferPreview() {
+  var el = document.getElementById('ol-preview-inner');
+  if (!el || !el.firstChild) return;
+  var wrap = el.parentElement;
+  var maxW = wrap.clientWidth - 8;
+  var maxH = wrap.clientHeight - 8;
+  var scale = Math.min(maxW / 794, maxH / 1123, 1);
+  el.style.transform = 'scale(' + scale + ')';
+  el.style.transformOrigin = 'top center';
+}
+
+window.initOfferLetter = function() {
+  var dateInput = document.getElementById('ol-date');
+  if (dateInput && !dateInput.value) {
+    var d = new Date();
+    dateInput.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  window.updateOfferLetter();
+  window.removeEventListener('resize', scaleOfferPreview);
+  window.addEventListener('resize', scaleOfferPreview);
+};
+
+window.updateOfferLetter = function() {
+  var name = document.getElementById('ol-name').value;
+  var role = document.getElementById('ol-role').value;
+  var company = document.getElementById('ol-company').value;
+  var stipend = document.getElementById('ol-stipend').value;
+  var dateVal = document.getElementById('ol-date').value;
+  var type = document.getElementById('ol-type').value;
+  var html = getOfferLetterHTML(name, role, company, stipend, dateVal, type);
+  var el = document.getElementById('ol-preview-inner');
+  if (el) {
+    el.innerHTML = html;
+    setTimeout(scaleOfferPreview, 100);
+  }
+};
+
+window.printOfferLetter = function() {
+  var name = document.getElementById('ol-name').value;
+  var role = document.getElementById('ol-role').value;
+  var company = document.getElementById('ol-company').value;
+  var stipend = document.getElementById('ol-stipend').value;
+  var dateVal = document.getElementById('ol-date').value;
+  var type = document.getElementById('ol-type').value;
+  var html = getOfferLetterHTML(name, role, company, stipend, dateVal, type);
+  var full = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Offer Letter</title></head><body style="margin:0;display:flex;justify-content:center;padding:40px 20px;background:#d0eaf7;font-family:sans-serif">' + html + '</body></html>';
+  var win = window.open('', '_blank');
+  win.document.write(full);
+  win.document.close();
+  setTimeout(function() { win.print(); }, 1000);
+};
+
+window.resetOfferLetter = function() {
+  document.getElementById('ol-name').value = 'Mithul';
+  document.getElementById('ol-role').value = 'AI Automations Intern';
+  document.getElementById('ol-company').value = 'ScalePods';
+  document.getElementById('ol-stipend').value = '5,000';
+  document.getElementById('ol-type').value = 'internship';
+  var d = new Date();
+  document.getElementById('ol-date').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  window.updateOfferLetter();
+};

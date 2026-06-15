@@ -8,6 +8,7 @@ const rescheduleRootEl = document.getElementById("reschedule-root");
 interface RescheduleParams {
   eventId: string;
   email: string;
+  candidate?: string;
 }
 
 declare global {
@@ -35,6 +36,7 @@ window.openRescheduleModal = (params: RescheduleParams) => {
         <RescheduleCalendar 
           eventId={params.eventId} 
           email={params.email} 
+          candidate={params.candidate}
           onSuccess={() => {
             window.closeRescheduleModal();
             if (window.loadMeetingsPage) window.loadMeetingsPage();

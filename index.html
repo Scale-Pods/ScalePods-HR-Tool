@@ -43,31 +43,19 @@
           <i class="ti ti-calendar-event"></i>
           <span>Interviews</span>
         </a>
-      </nav>
-
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-nav-label">Workspace</div>
-
-      <nav class="sidebar-nav">
-        <a class="nav-item" href="#" onclick="alert('Analytics')">
-          <i class="ti ti-chart-bar"></i>
-          <span>Analytics</span>
-        </a>
-        <a class="nav-item" href="#" onclick="alert('Team')">
-          <i class="ti ti-users"></i>
-          <span>Team</span>
-        </a>
-        <a class="nav-item" href="#" onclick="alert('Settings')">
-          <i class="ti ti-settings"></i>
-          <span>Settings</span>
+        <a class="nav-item" data-page="offer-letter" onclick="navigate('offer-letter', this)">
+          <i class="ti ti-file-description"></i>
+          <span>Offer Letter</span>
         </a>
       </nav>
+
+
 
       <div class="sidebar-footer">
         <div class="sidebar-user">
           <div class="user-avatar">SP</div>
           <div class="user-info">
-            <div class="user-name">Sarah P.</div>
+            <div class="user-name">Raunak</div>
             <div class="user-role">Admin</div>
           </div>
           <button class="user-menu-btn" onclick="alert('Profile')"><i class="ti ti-dots-vertical"></i></button>
@@ -102,7 +90,7 @@
         <div class="topbar-profile">
           <div class="profile-avatar">SP</div>
           <div class="profile-info">
-            <div class="profile-name">Sarah P.</div>
+            <div class="profile-name">Raunak</div>
             <div class="profile-role">Administrator</div>
           </div>
         </div>
@@ -130,7 +118,7 @@
                 <option value="">All Campaigns</option>
               </select>
             </div>
-            <h1 class="hero-title" id="greeting-text">Good morning, <span class="hero-name">Sarah</span></h1>
+            <h1 class="hero-title" id="greeting-text">Good morning, <span class="hero-name">Raunak</span></h1>
             <p class="hero-sub" id="hero-subtitle">Your hiring intelligence is live. <strong id="hero-candidates">0</strong> candidates flowing through the pipeline with a <strong id="hero-score">0</strong> mean score.</p>
             <div class="hero-actions">
               <button class="btn-primary" onclick="navigate('create', this)"><i class="ti ti-sparkles"></i> Create Campaign</button>
@@ -639,6 +627,77 @@
         </div>
       </div>
 
+      <!-- ═══ OFFER LETTER PAGE ═══ -->
+      <div class="page" id="page-offer-letter">
+        <style>
+          .ol-page-wrap { display: flex; gap: 24px; align-items: flex-start; }
+          .ol-form-col { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
+          .ol-form-card { background: var(--surface-solid); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 20px; }
+          .ol-form-card h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+          .ol-form-card h3 i { color: var(--blue); }
+          .ol-field { margin-bottom: 12px; }
+          .ol-field:last-child { margin-bottom: 0; }
+          .ol-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+          .ol-field input, .ol-field select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface3); border: 1px solid var(--border-color); border-radius: 8px; outline: none; transition: all .2s; }
+          .ol-field input:focus, .ol-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glass); }
+          .ol-toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+          .ol-toolbar-row .btn-secondary { background: var(--surface3); color: var(--text2); border: 1px solid var(--border-color); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-weight: 600; padding: 8px 16px; border-radius: 10px; font-size: 12px; transition: all .2s; }
+          .ol-toolbar-row .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+          .ol-preview-wrap { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: flex-start; height: calc(100vh - 180px); position: sticky; top: 0; }
+          .ol-preview-inner { transform-origin: top center; }
+          @media (max-width: 1100px) { .ol-page-wrap { flex-direction: column; } .ol-form-col { width: 100%; } }
+        </style>
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-heading">Offer Letter Generator</h2>
+            <p class="page-sub">Generate and customize internship appointment letters</p>
+          </div>
+          <div class="ol-toolbar-row">
+            <button class="btn-secondary" onclick="resetOfferLetter()"><i class="ti ti-refresh"></i> Reset</button>
+            <button class="btn-primary" onclick="printOfferLetter()"><i class="ti ti-printer"></i> Print / PDF</button>
+          </div>
+        </div>
+
+        <div class="ol-page-wrap">
+          <div class="ol-form-col">
+            <div class="ol-form-card">
+              <h3><i class="ti ti-user"></i> Candidate Details</h3>
+              <div class="ol-field">
+                <label>Candidate Name</label>
+                <input type="text" id="ol-name" value="Mithul" oninput="updateOfferLetter()">
+              </div>
+              <div class="ol-field">
+                <label>Role / Position</label>
+                <input type="text" id="ol-role" value="AI Automations Intern" oninput="updateOfferLetter()">
+              </div>
+              <div class="ol-field">
+                <label>Company</label>
+                <input type="text" id="ol-company" value="ScalePods" oninput="updateOfferLetter()">
+              </div>
+              <div class="ol-field">
+                <label>Stipend (INR)</label>
+                <input type="text" id="ol-stipend" value="5,000" oninput="updateOfferLetter()">
+              </div>
+              <div class="ol-field">
+                <label>Date</label>
+                <input type="date" id="ol-date" oninput="updateOfferLetter()">
+              </div>
+              <div class="ol-field">
+                <label>Letter Type</label>
+                <select id="ol-type" onchange="updateOfferLetter()">
+                  <option value="internship">Internship Appointment</option>
+                  <option value="fulltime">Full-Time Offer</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="ol-preview-wrap">
+            <div class="ol-preview-inner" id="ol-preview-inner"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ CREATE CAMPAIGN PAGE ═══ -->
       <div class="page" id="page-create">
 
@@ -686,34 +745,49 @@
               <div class="create-row-2">
                 <div class="create-field">
                   <label class="create-label">Start Date <span class="required">*</span></label>
-                  <input type="date" id="campaign-start" class="create-input">
+                  <div class="create-date-wrap">
+                    <div class="create-date-trigger">
+                      <i class="ti ti-calendar"></i>
+                      <span class="create-date-value placeholder" id="campaign-start-text">Select start date</span>
+                      <i class="ti ti-chevron-down create-date-chevron"></i>
+                    </div>
+                    <input type="date" id="campaign-start" onchange="updateDateDisplay(this)">
+                  </div>
                 </div>
                 <div class="create-field">
                   <label class="create-label">End Date <span class="required">*</span></label>
-                  <input type="date" id="campaign-end" class="create-input">
+                  <div class="create-date-wrap">
+                    <div class="create-date-trigger">
+                      <i class="ti ti-calendar"></i>
+                      <span class="create-date-value placeholder" id="campaign-end-text">Select end date</span>
+                      <i class="ti ti-chevron-down create-date-chevron"></i>
+                    </div>
+                    <input type="date" id="campaign-end" onchange="updateDateDisplay(this)">
+                  </div>
                 </div>
               </div>
               <div class="create-field">
                 <label class="create-label">Location <span class="required">*</span></label>
                 <input type="text" id="campaign-location" placeholder="e.g., Remote / Bangalore Office" class="create-input">
               </div>
-              <div class="create-row-2">
-                <div class="create-field">
-                  <label class="create-label">Expected Candidates <span class="required">*</span></label>
-                  <input type="number" id="campaign-candidates" placeholder="e.g., 50" class="create-input">
-                </div>
-                <div class="create-field">
-                  <label class="create-label">Salary Range (LPA)</label>
-                  <div class="create-salary">
-                    <input type="number" id="campaign-salary-min" placeholder="Min" class="create-input">
-                    <span class="create-salary-sep">–</span>
-                    <input type="number" id="campaign-salary-max" placeholder="Max" class="create-input">
-                  </div>
+              <div class="create-field">
+                <label class="create-label">Salary Range (LPA)</label>
+                <div class="create-salary">
+                  <input type="number" id="campaign-salary-min" placeholder="Min" class="create-input">
+                  <span class="create-salary-sep">–</span>
+                  <input type="number" id="campaign-salary-max" placeholder="Max" class="create-input">
                 </div>
               </div>
               <div class="create-field">
                 <label class="create-label">Expected Joining Date</label>
-                <input type="date" id="campaign-joining" class="create-input">
+                <div class="create-date-wrap">
+                  <div class="create-date-trigger">
+                    <i class="ti ti-calendar"></i>
+                    <span class="create-date-value placeholder" id="campaign-joining-text">Select joining date</span>
+                    <i class="ti ti-chevron-down create-date-chevron"></i>
+                  </div>
+                  <input type="date" id="campaign-joining" onchange="updateDateDisplay(this)">
+                </div>
               </div>
             </div>
 
@@ -805,6 +879,14 @@
                 <div class="create-toggle-desc">Immediately accept candidates</div>
               </div>
               <div class="toggle on" id="active-toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <div class="create-toggle-card">
+              <div class="create-toggle-info">
+                <div class="create-toggle-title">Quick Hire</div>
+                <div class="create-toggle-desc">Includes Sunday as well</div>
+              </div>
+              <div class="toggle" id="quick-hire-toggle" onclick="this.classList.toggle('on')"></div>
             </div>
 
             <button class="create-submit" onclick="submitCampaign()">
@@ -989,6 +1071,46 @@
     .fit-medium { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.06)); color: var(--amber); }
     .fit-low { background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06)); color: var(--red); }
     .cand-stage { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 20px; background: var(--surface3); color: var(--text2); border: 1px solid var(--border-color); }
+    .detail-view-toggle { display: flex; align-items: center; gap: 2px; padding: 3px; background: var(--surface3); border: 1px solid var(--border-color); border-radius: 10px; flex-shrink: 0; }
+    .view-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: none; background: transparent; color: var(--text3); border-radius: 7px; cursor: pointer; font-size: 16px; transition: all .25s ease; font-family: inherit; }
+    .view-btn:hover { color: var(--text2); }
+    .view-btn.active { background: var(--surface-solid); color: var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .candidate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-bottom: 16px; transition: all .4s cubic-bezier(.22,1,.36,1); min-height: 100px; }
+    .candidate-grid.list-view { display: flex; flex-direction: column; gap: 6px; }
+
+    .candidate-grid.list-view .cand-card { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 10px; transition: all .3s cubic-bezier(.22,1,.36,1); }
+
+    .candidate-grid.list-view .cand-card:hover { transform: translateX(3px); }
+
+    .candidate-grid.list-view .cand-card:active { transform: scale(0.998); }
+
+    .candidate-grid.list-view .cand-card-top { margin-bottom: 0; flex-shrink: 0; gap: 10px; }
+
+    .candidate-grid.list-view .cand-card-info { min-width: 180px; max-width: 280px; }
+
+    .candidate-grid.list-view .cand-card-name { font-size: 13px; }
+
+    .candidate-grid.list-view .cand-card-sub { font-size: 10px; }
+
+    .candidate-grid.list-view .cand-card-badges { margin-bottom: 0; flex-shrink: 0; }
+
+    .candidate-grid.list-view .cand-card-chips { flex: 1; min-width: 0; padding-top: 0 !important; justify-content: center; }
+
+    .candidate-grid.list-view .cand-card-tags { margin-top: 0; flex-shrink: 0; }
+
+    .candidate-grid.list-view .card-decision { border-top: none !important; margin-top: 0 !important; padding: 0 !important; flex-shrink: 0; }
+
+    .cand-card.cand-card-rejected { background: rgba(239,68,68,0.08) !important; border-color: rgba(239,68,68,0.2) !important; }
+    @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .candidate-grid .cand-card { animation: fadeSlideIn 0.35s cubic-bezier(.22,1,.36,1) forwards; }
+    .candidate-grid .cand-card:nth-child(1) { animation-delay: 0s; }
+    .candidate-grid .cand-card:nth-child(2) { animation-delay: 0.03s; }
+    .candidate-grid .cand-card:nth-child(3) { animation-delay: 0.06s; }
+    .candidate-grid .cand-card:nth-child(4) { animation-delay: 0.09s; }
+    .candidate-grid .cand-card:nth-child(5) { animation-delay: 0.12s; }
+    .candidate-grid .cand-card:nth-child(6) { animation-delay: 0.15s; }
+    .candidate-grid .cand-card:nth-child(7) { animation-delay: 0.18s; }
+    .candidate-grid .cand-card:nth-child(8) { animation-delay: 0.21s; }
     .status-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 6px; white-space: nowrap; letter-spacing: -0.01em; }
     .status-tag-scheduled { background: rgba(37,99,235,0.1); color: var(--blue); }
     .status-tag-pending { background: rgba(245,158,11,0.1); color: var(--amber); }
@@ -1217,6 +1339,10 @@
     </div>
     <div class="detail-toolbar">
       <input type="text" class="detail-search-bar" id="candidate-search" placeholder="Search candidates..." oninput="filterCandidates()"/>
+      <div class="detail-view-toggle" id="view-toggle">
+        <button class="view-btn active" data-view="grid" onclick="toggleCandidateView('grid')" title="Card view"><i class="ti ti-grid-dots"></i></button>
+        <button class="view-btn" data-view="list" onclick="toggleCandidateView('list')" title="List view"><i class="ti ti-list"></i></button>
+      </div>
       <div class="detail-toolbar-filter">
         <select class="detail-select" id="cand-filter-role" onchange="filterCandidates()"><option value="">All Roles</option></select>
         <select class="detail-select" id="cand-filter-fit" onchange="filterCandidates()"><option value="">All Fit</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
@@ -1258,8 +1384,20 @@
 
 <!-- Reschedule Modal (outside page containers so it's always visible) -->
 <div class="drawer-overlay" id="reschedule-overlay" onclick="closeRescheduleModal()"></div>
-<div class="reschedule-modal" id="reschedule-modal" style="position:fixed;top:50%;left:50%;z-index:1001;width:850px;max-width:94vw;display:none;overflow:hidden;border:1px solid var(--border-color);border-radius:24px;background:var(--surface-solid);box-shadow:var(--shadow-xl);">
+<div class="reschedule-modal" id="reschedule-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1001;width:560px;max-width:94vw;display:none;overflow:hidden;border:1px solid rgba(255,255,255,0.15);border-radius:24px;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 24px 64px rgba(0,0,0,0.10),0 0 0 1px rgba(0,0,0,0.02);">
   <div id="reschedule-root"></div>
+</div>
+
+<!-- Delete Campaign Confirmation Modal -->
+<div class="drawer-overlay" id="delete-overlay" onclick="closeDeleteModal()"></div>
+<div class="delete-modal" id="delete-modal">
+  <div class="delete-modal-icon"><i class="ti ti-trash"></i></div>
+  <div class="delete-modal-title" id="delete-modal-title">Delete campaign?</div>
+  <div class="delete-modal-desc">This action cannot be undone.</div>
+  <div class="delete-modal-actions">
+    <button class="btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+    <button class="btn-danger" id="delete-confirm-btn" disabled>Wait 3s</button>
+  </div>
 </div>
 
 <script type="module" src="/src/main.js"></script>
