@@ -267,10 +267,11 @@ const pages = {
 };
 
 window.toggleSidebar = function() {
-  if (window.innerWidth <= 480) {
+  var s = document.getElementById('sidebar');
+  if (window.getComputedStyle(s).position === 'fixed') {
     document.body.classList.toggle('sidebar-open');
   } else {
-    document.getElementById('sidebar').classList.toggle('collapsed');
+    s.classList.toggle('collapsed');
   }
 };
 

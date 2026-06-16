@@ -3112,8 +3112,8 @@ body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
     left: 0 !important;
     margin: 0 !important;
     height: 100vh !important;
-    width: 260px !important;
-    max-width: 75vw;
+    width: 220px !important;
+    max-width: 70vw;
     border-radius: 0 !important;
     z-index: 20;
     transform: translateX(-110%);
