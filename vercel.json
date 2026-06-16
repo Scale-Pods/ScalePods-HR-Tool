@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    {
+      "source": "/n8n-proxy/:path*",
+      "destination": "/api/proxy?n8nPath=/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "github": {
+    "silent": true
+  }
+}

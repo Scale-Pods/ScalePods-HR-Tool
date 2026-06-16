@@ -36,11 +36,13 @@ next-env.d.ts
 !package-lock.json
 !tsconfig.json
 !components.json
+!vercel.json
 *.txt
 *.js
 !*.config.js
 !*.config.mjs
 !*.config.ts
+!api/proxy.js
 # HTML files
 !index.html
 !reset-password/index.html
