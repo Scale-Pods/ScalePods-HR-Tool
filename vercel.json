@@ -5,12 +5,14 @@
       "destination": "/api/proxy?n8nPath=/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/reset-password(.*)",
+      "destination": "/reset-password/index.html"
+    },
+    {
+      "source": "/((?!api|reset-password|assets|favicon.ico).*)",
       "destination": "/index.html"
     }
   ],
-  "cleanUrls": true,
-  "trailingSlash": false,
   "github": {
     "silent": true
   }
