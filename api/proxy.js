@@ -1,3 +1,32 @@
+import https from 'https';
+import { URL } from 'url';
+
+function n8nFetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(u, {
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      rejectUnauthorized: false,
+    }, (res) => {
+      const chunks = [];
+      res.on('data', d => chunks.push(d));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks);
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          async text() { return body.toString(); },
+          async json() { return JSON.parse(body.toString()); },
+        });
+      });
+    });
+    req.on('error', reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -24,19 +53,21 @@ export default async function handler(req, res) {
 
     const fetchOptions = {
       method: req.method,
-      headers: {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-      },
+      headers: {},
     };
+
+    if (req.headers['content-type']) {
+      fetchOptions.headers['Content-Type'] = req.headers['content-type'];
+    }
 
     if (rawBody.length > 0) {
       fetchOptions.body = rawBody;
     }
 
-    const response = await fetch(targetUrl, fetchOptions);
+    const response = await n8nFetch(targetUrl, fetchOptions);
     const data = await response.text();
 
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = response.headers['content-type'] || '';
     if (contentType.includes('application/json')) {
       try {
         res.status(response.status).json(JSON.parse(data));
