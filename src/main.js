@@ -267,8 +267,18 @@ const pages = {
 };
 
 window.toggleSidebar = function() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  if (window.innerWidth <= 480) {
+    document.body.classList.toggle('sidebar-open');
+  } else {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
 };
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.sidebar-overlay')) {
+    document.body.classList.remove('sidebar-open');
+  }
+});
 
 window.navigate = function(id, clickedNavItem, skipPush = false) {
   const pageMap = {
@@ -300,6 +310,7 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
 
   document.getElementById('page-title').textContent = pageTitle;
   document.querySelector('.content').scrollTop = 0;
+  if (window.innerWidth <= 480) document.body.classList.remove('sidebar-open');
 
   if (window.__mountSearch) window.__mountSearch(id);
   if (id === 'create') { window.loadCampaignDraft(); window.updatePreview(); }
@@ -1067,7 +1078,6 @@ function formatTimeDisplay(val) {
 
 window.loadInterviewers = function() {
   const urls = [
-    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing',
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=InterviewerListing'
   ];
   function tryFetch(i) {
@@ -1404,7 +1414,6 @@ window.loadDashboardData = function(campaignName) {
   var encodedName = encodeURIComponent(campaignName);
   var cb = Date.now();
   var urls = [
-    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
 
@@ -1821,7 +1830,6 @@ window.loadCampaigns = function() {
   if (!grid) return;
   grid.innerHTML = '<div class="campaigns-loading" style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3);font-size:14px;"><i class="ti ti-loader" style="animation:spin 1s linear infinite;display:block;font-size:28px;margin-bottom:12px;"></i>Loading campaigns...</div>';
   const urls = [
-    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns',
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Campaigns'
   ];
   function tryFetch(i) {
@@ -2122,7 +2130,6 @@ window.loadCampaignDetail = function() {
   const encodedName = encodeURIComponent(name);
   const cb = Date.now();
   const urls = [
-    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb,
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?action=Certain%20Campaign&campaignName=' + encodedName + '&_=' + cb
   ];
   document.getElementById('candidate-grid').innerHTML = '';
@@ -2965,7 +2972,6 @@ window.loadInterviewsTab = function() {
   var encodedAction = encodeURIComponent('Interview');
   var params = 'action=' + encodedAction + '&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name) + '&_=' + cb;
   var urls = [
-    '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?' + params,
     '/n8n-proxy/webhook/f1f73fff-1311-4fb6-8ed6-ea7efa1cb6c3?' + params
   ];
 

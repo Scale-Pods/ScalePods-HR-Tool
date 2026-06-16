@@ -3088,3 +3088,126 @@ body.logged-in .auth-modal { display: none !important; }
 .info-list { display: flex; flex-direction: column; gap: 12px; }
 .info-item { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; }
 .info-item i { color: var(--emerald); }
+
+/* ═══ Mobile Drawer Overlay ═══ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 19;
+  opacity: 0;
+  transition: opacity .3s ease;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.sidebar-overlay.active { opacity: 1; }
+body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
+body.sidebar-open .sidebar { transform: translateX(0) !important; }
+
+/* ═══ Mobile (<= 480px) ═══ */
+@media (max-width: 480px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    height: 100vh !important;
+    width: 260px !important;
+    max-width: 75vw;
+    border-radius: 0 !important;
+    z-index: 20;
+    transform: translateX(-110%);
+    transition: transform .35s cubic-bezier(.22,1,.36,1);
+  }
+  .sidebar .sidebar-nav-label,
+  .sidebar .nav-item span,
+  .sidebar .badge,
+  .sidebar .user-info,
+  .sidebar .user-menu-btn { display: revert; }
+  .sidebar .sidebar-logo { justify-content: center; padding-bottom: 20px; }
+  .sidebar .nav-item { justify-content: flex-start; padding: 10px 16px; }
+  .sidebar .sidebar-user { justify-content: flex-start; padding: 10px 14px; }
+
+  .topbar {
+    margin: 6px 6px 0;
+    padding: 0 10px;
+    height: 48px;
+    border-radius: 14px;
+    top: 6px;
+  }
+  .topbar-breadcrumb {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+  }
+  .topbar-menu-btn { width: 28px; height: 28px; font-size: 16px; }
+  .topbar-divider { margin: 0 3px; }
+  .topbar-profile { padding: 2px 6px 2px 2px; gap: 4px; }
+  .profile-avatar { width: 26px; height: 26px; font-size: 10px; }
+
+  .content { padding: 10px 8px 40px; }
+
+  .hero-title { font-size: 20px; }
+  .page-heading { font-size: 20px; }
+  .create-head-title { font-size: 20px; }
+
+  .dash-hero { gap: 12px; }
+  .hero-greeting { padding: 16px 12px; }
+  .hero-actions { flex-direction: column; width: 100%; }
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary { width: 100%; justify-content: center; }
+  .hero-metrics { grid-template-columns: 1fr; gap: 6px; }
+  .hero-chart-bg { display: none; }
+
+  .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+  .kpi-card { padding: 14px; }
+
+  .analytics-grid { gap: 10px; }
+  .bottom-grid { gap: 10px; }
+  .analytics-card, .widget-card { padding: 14px; }
+
+  .section-header { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 14px; }
+  .section-title { font-size: 15px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+  .page-sub { font-size: 12px; }
+
+  .campaigns-grid { grid-template-columns: 1fr; gap: 10px; }
+  .campaign-card { padding: 14px; }
+
+  .create-wrapper { grid-template-columns: 1fr; }
+  .create-form-side { position: static; }
+  .create-row-2 { grid-template-columns: 1fr; }
+  .create-weights { grid-template-columns: 1fr 1fr; }
+
+  .meetings-main { grid-template-columns: 1fr; gap: 10px; }
+
+  .offer-layout { grid-template-columns: 1fr; }
+  .user-management-grid { grid-template-columns: 1fr; gap: 16px; }
+  #page-users { padding: 16px; }
+  .user-admin-card { padding: 20px; }
+  .user-info-panel { padding: 20px; }
+
+  .mini-stats { grid-template-columns: 1fr; gap: 8px; }
+  .pipeline-flow { gap: 8px; }
+  .conversion-stats { gap: 6px; }
+
+  .leaderboard { gap: 4px; }
+  .lb-row { padding: 8px 10px; }
+  .activity-item { padding: 8px 0; }
+  .timeline-item { padding: 8px 0; }
+
+  .campaign-selector { min-width: 0; width: 100%; }
+  .campaign-selector select { max-width: 100%; }
+
+  .detail-info-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  .btn-primary { padding: 9px 18px; font-size: 12px; }
+  .btn-secondary { padding: 9px 18px; font-size: 12px; }
+
+  .topbar-right .icon-btn:not(.topbar-menu-btn) { display: none; }
+
+  .auth-modal { width: calc(100% - 24px); margin: 12px; padding: 20px; }
+}
