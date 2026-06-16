@@ -364,14 +364,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
 window.toggleTheme = function() {
   const body = document.body;
-  const btn = document.getElementById('theme-btn');
-  if (body.dataset.theme === 'dark') {
+  const isDark = body.dataset.theme === 'dark';
+  if (isDark) {
     delete body.dataset.theme;
-    btn.innerHTML = '<i class="ti ti-moon"></i>';
   } else {
     body.dataset.theme = 'dark';
-    btn.innerHTML = '<i class="ti ti-sun"></i>';
   }
+  var icon = isDark ? 'moon' : 'sun';
+  var tb = document.getElementById('theme-btn');
+  if (tb) tb.innerHTML = '<i class="ti ti-' + icon + '"></i>';
+  var sb = document.getElementById('sidebar-theme-icon');
+  if (sb) sb.className = 'ti ti-' + icon;
 };
 
 const today = new Date();
