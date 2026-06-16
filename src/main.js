@@ -268,7 +268,8 @@ const pages = {
 
 window.toggleSidebar = function() {
   var s = document.getElementById('sidebar');
-  if (window.getComputedStyle(s).position === 'fixed') {
+  var pos = window.getComputedStyle(s).position;
+  if (pos === 'fixed') {
     document.body.classList.toggle('sidebar-open');
   } else {
     s.classList.toggle('collapsed');
@@ -311,7 +312,9 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
 
   document.getElementById('page-title').textContent = pageTitle;
   document.querySelector('.content').scrollTop = 0;
-  if (window.innerWidth <= 480) document.body.classList.remove('sidebar-open');
+  if (window.getComputedStyle(document.getElementById('sidebar')).position === 'fixed') {
+    document.body.classList.remove('sidebar-open');
+  }
 
   if (window.__mountSearch) window.__mountSearch(id);
   if (id === 'create') { window.loadCampaignDraft(); window.updatePreview(); }
