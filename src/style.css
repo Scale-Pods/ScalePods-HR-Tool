@@ -3103,7 +3103,6 @@ body.logged-in .auth-modal { display: none !important; }
 }
 .sidebar-overlay.active { opacity: 1; }
 body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
-body.sidebar-open .sidebar { transform: translateX(0) !important; }
 
 /* ═══ Mobile (<= 480px) ═══ */
 @media (max-width: 480px) {
@@ -3120,6 +3119,7 @@ body.sidebar-open .sidebar { transform: translateX(0) !important; }
     transform: translateX(-110%);
     transition: transform .35s cubic-bezier(.22,1,.36,1);
   }
+  body.sidebar-open .sidebar { transform: translateX(0) !important; }
   .sidebar .sidebar-nav-label,
   .sidebar .nav-item span,
   .sidebar .badge,
