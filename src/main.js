@@ -328,6 +328,13 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
       window.loadDashboardData('');
     }
   }
+  if (id === 'campaign-detail' && !window._campaignDetailName) {
+    var params = new URLSearchParams(window.location.search);
+    var campaignName = params.get('campaign');
+    if (campaignName) {
+      window.viewCampaign(campaignName, true);
+    }
+  }
   if (id === 'meetings') {
     window.loadMeetingsPage();
   }
@@ -1852,6 +1859,15 @@ window.loadCampaigns = function() {
         grid.innerHTML = '';
         document.getElementById('campaign-badge').textContent = list.length;
         window._campaignList = list;
+        if (window._pendingCampaignName) {
+          var pending = window._pendingCampaignName;
+          window._pendingCampaignName = null;
+          var found = list.find(c => c.CampaignName === pending);
+          if (found) {
+            window._campaignDetailData = found;
+            renderCampaignDetail();
+          }
+        }
         window.populateCampaignSelector();
         var meetingsActive = document.getElementById('page-meetings')?.classList.contains('active');
         if (meetingsActive) window.fetchAllCandidatesForMeetings();
@@ -1895,13 +1911,21 @@ window.loadCampaigns = function() {
 
 window._campaignDetailData = null;
 
-window.viewCampaign = function(name) {
+window.viewCampaign = function(name, fromUrl) {
   window._campaignDetailData = null;
   window._campaignDetailName = name || '';
+  if (!fromUrl && name) {
+    var url = new URL(window.location);
+    url.searchParams.set('campaign', name);
+    window.history.replaceState({ pageId: 'campaign-detail' }, '', url);
+  }
   const campaign = (window._campaignList || []).find(c => c.CampaignName === name);
   window._campaignDetailData = campaign || null;
   navigate('campaign-detail');
   loadCampaignDetail();
+  if (!campaign && name) {
+    window._pendingCampaignName = name;
+  }
 };
 
 window.loadCampaignDetail = function() {
@@ -2155,7 +2179,8 @@ window.loadCampaignDetail = function() {
         } else if (data && Array.isArray(data.data)) { list = data.data; meta = data; }
         else list = [];
         window._candidateData = list.length ? list : null;
-        if (meta && window._campaignDetailData) {
+        if (meta) {
+          if (!window._campaignDetailData) window._campaignDetailData = {};
           Object.keys(meta).forEach(function(k) {
             if (k !== 'data' && meta[k] !== undefined && meta[k] !== null) window._campaignDetailData[k] = meta[k];
           });
@@ -2490,10 +2515,11 @@ function renderCandidates(list) {
         else if (!skipR2 && roundList.length >= 2) { nextKey = 'round2'; nextLabel = 'Round 2'; }
         else if (!skipR3 && roundList.length >= 3) { nextKey = 'round3'; nextLabel = 'Round 3'; }
         if (!nextKey) return '';
+        var isLastRound = nextKey.indexOf('round') === 0 && nextKey === 'round' + roundList.length;
         return '<div class="card-decision" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;border-top:1px solid var(--separator);margin-top:6px;">' +
           '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + nextLabel + '?</span>' +
           '<div style="display:flex;gap:4px;margin-left:auto;">' +
-            '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'yes\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check" style="font-size:10px;"></i> Yes</button>' +
+            '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'' + (isLastRound ? 'Hire' : 'yes') + '\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check" style="font-size:10px;"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
             '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'no\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-x" style="font-size:10px;"></i> No</button>' +
           '</div>' +
         '</div>';
@@ -2508,7 +2534,7 @@ window.cardDecision = function(idx, round, value, btn) {
   if (!c) return;
   var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
   var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
-  c[fieldMap[round]] = value === 'yes' ? 'Selected' : 'Rejected';
+  c[fieldMap[round]] = value === 'Hire' ? 'Hired' : (value === 'yes' ? 'Selected' : 'Rejected');
   fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round] || round), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: round, decision: value })
@@ -2525,8 +2551,8 @@ window.cardDecision = function(idx, round, value, btn) {
       var section = btn.closest('.card-decision');
       if (section) {
         section.innerHTML =
-          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Accepted</span>' +
-          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> Accepted</span>';
+          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>' +
+          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> ' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>';
       }
     }
   }
@@ -2889,12 +2915,13 @@ function renderDrawerContent(c) {
           '</div>' +
         '</div>';
     } else {
+      var isLastRound = dr.key.indexOf('round') === 0 && dr.key === 'round' + roundNames.length;
       decisionHtml +=
         '<div style="border-radius:10px;border:1px solid var(--border-color);overflow:hidden;">' +
           '<div style="padding:10px 14px;background:var(--surface3);font-size:11px;color:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.05em;"><i class="ti ti-clipboard-text"></i> ' + dr.label + '</div>' +
           '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">' +
             '<div style="display:flex;gap:8px;">' +
-              '<button type="button" data-dr="' + dr.key + '" data-dv="yes" onclick="window.selectDecision(this,\'' + dr.key + '\',\'yes\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check"></i> Yes</button>' +
+              '<button type="button" data-dr="' + dr.key + '" data-dv="' + (isLastRound ? 'Hire' : 'yes') + '" onclick="window.selectDecision(this,\'' + dr.key + '\',\'' + (isLastRound ? 'Hire' : 'yes') + '\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
               '<button type="button" data-dr="' + dr.key + '" data-dv="no" onclick="window.selectDecision(this,\'' + dr.key + '\',\'no\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-x"></i> No</button>' +
             '</div>' +
             '<textarea id="dc-' + dr.key + '" placeholder="Add comments for ' + dr.label + '..." style="width:100%;min-height:50px;padding:8px 10px;background:var(--surface1);border:1px solid var(--border-color);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;"></textarea>' +
@@ -2939,13 +2966,19 @@ function renderDrawerContent(c) {
 
   var initRounds = ['resume', 'round1', 'round2', 'round3'];
   var initFieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
-  var initValMap = { selected: 'yes', offered: 'yes', rejected: 'no', yes: 'yes', no: 'no' };
+  var initValMap = { selected: 'yes', offered: 'yes', rejected: 'no', yes: 'yes', no: 'no', Hired: 'Hire', hired: 'Hire', Hire: 'Hire', hire: 'Hire' };
   initRounds.forEach(function(r) {
     var val = (c[initFieldMap[r]] || '').toLowerCase();
     var dv = initValMap[val];
     if (dv) {
       var btn = document.querySelector('#decision-container [data-dr="' + r + '"][data-dv="' + dv + '"]');
-      if (btn) window.selectDecision(btn, r, dv);
+      if (btn) {
+        var isPos = dv === 'yes' || dv === 'Hire';
+        btn.style.background = isPos ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+        btn.style.color = isPos ? 'var(--emerald)' : 'var(--red)';
+        btn.style.borderColor = isPos ? 'var(--emerald)' : 'var(--red)';
+        btn.style.boxShadow = '0 0 0 2px ' + (isPos ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+      }
     }
   });
 }
@@ -3059,10 +3092,11 @@ window.selectDecision = function(btn, round, value) {
     b.classList.remove('dr-selected');
   });
   btn.classList.add('dr-selected');
-  btn.style.background = value === 'yes' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
-  btn.style.color = value === 'yes' ? 'var(--emerald)' : 'var(--red)';
-  btn.style.borderColor = value === 'yes' ? 'var(--emerald)' : 'var(--red)';
-  btn.style.boxShadow = '0 0 0 2px ' + (value === 'yes' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+  var isPositive = value === 'yes' || value === 'Hire';
+  btn.style.background = isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+  btn.style.color = isPositive ? 'var(--emerald)' : 'var(--red)';
+  btn.style.borderColor = isPositive ? 'var(--emerald)' : 'var(--red)';
+  btn.style.boxShadow = '0 0 0 2px ' + (isPositive ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
 };
 
 /* ─── Submit Decisions ─── */
@@ -3075,12 +3109,6 @@ window.submitDecisions = function() {
   var email = container.dataset.email || '';
   var campaignName = container.dataset.campaign || '';
 
-  var payload = {
-    name: name,
-    email: email,
-    campaignName: campaignName
-  };
-
   var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
   var rounds = ['resume', 'round1', 'round2', 'round3'];
   var toSubmit = [];
@@ -3091,6 +3119,7 @@ window.submitDecisions = function() {
       name: name,
       email: email,
       campaignName: campaignName,
+      round: round,
       decision: selectedBtn.getAttribute('data-dv') || ''
     };
     var commentsEl = document.getElementById('dc-' + round);
