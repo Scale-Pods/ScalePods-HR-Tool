@@ -2576,11 +2576,19 @@ window.filterCandidates = function() {
     if (q && searchStr.indexOf(q) === -1) return false;
 
     if (status) {
-      var tags = getStatusTags(c);
-      var match = tags.some(function(t) { return t.label === status; });
-      if (!match) {
-        var overall = getOverallResult(c);
-        if (overall !== status) return false;
+      var decFields = ['Resume Decision', 'Round 1 Decision', 'Round 2 Decision', 'Round 3 Decision', 'Call Decision'];
+      var decVals = decFields.map(function(f) { return (c[f] || '').toLowerCase(); });
+      if (status === 'Rejected') {
+        if (!decVals.some(function(v) { return v === 'rejected' || v === 'no'; })) return false;
+      } else if (status === 'Selected') {
+        if (!decVals.some(function(v) { return v === 'selected' || v === 'yes' || v === 'offered' || v === 'hired'; })) return false;
+      } else {
+        var tags = getStatusTags(c);
+        var match = tags.some(function(t) { return t.label === status; });
+        if (!match) {
+          var overall = getOverallResult(c);
+          if (overall !== status) return false;
+        }
       }
     }
     if (roleFilter && (c.Role || '') !== roleFilter) return false;
