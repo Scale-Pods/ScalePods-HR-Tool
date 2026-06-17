@@ -2317,7 +2317,7 @@ function getCandidateStage(c) {
   if (isDecided(c['Round 3 Decision'])) return 'Round 3';
   if (isDecided(c['Round 2 Decision'])) return 'Round 2';
   if (isDecided(c['Round 1 Decision'])) return 'Round 1';
-  if (isDecided(c['Resume Decision'])) return 'Resume Review';
+  if (isDecided(c['Resume Decision']) || isDecided(c['Call Decision'])) return 'Resume Review';
   return 'Screening';
 }
 
@@ -2327,13 +2327,14 @@ function getStatusTags(c) {
   var r1d = c['Round 1 Decision'];
   var r2d = c['Round 2 Decision'];
   var r3d = c['Round 3 Decision'];
+  var cd = c['Call Decision'];
   var r1Date = c['Round 1 Meeting Date'];
   var r2Date = c['Round 2 Meeting Date'];
   var r3Date = c['Round 3 Meeting Date'];
 
   if (r1Date || r2Date || r3Date) { tags.push({ label: 'Interview Scheduled', cls: 'status-tag-scheduled' }); }
-  else if (rd || r1d || r2d || r3d) {
-    var decs = [rd, r1d, r2d, r3d].filter(Boolean).map(function(d) { return String(d).toLowerCase(); });
+  else if (rd || r1d || r2d || r3d || cd) {
+    var decs = [rd, r1d, r2d, r3d, cd].filter(Boolean).map(function(d) { return String(d).toLowerCase(); });
     if (decs.some(function(d) { return d === 'rejected' || d === 'no'; })) tags.push({ label: 'Rejected', cls: 'status-tag-rejected' });
     else if (decs.some(function(d) { return d === 'selected' || d === 'offered' || d === 'yes' || d === 'hired'; })) tags.push({ label: 'Selected', cls: 'status-tag-selected' });
     else if (decs.some(function(d) { return d === 'pending' || d === 'awaiting'; })) tags.push({ label: 'Awaiting Feedback', cls: 'status-tag-awaiting' });
@@ -2345,7 +2346,7 @@ function getStatusTags(c) {
 }
 
 function getOverallResult(c) {
-  var decisions = [c['Resume Decision'], c['Round 1 Decision'], c['Round 2 Decision'], c['Round 3 Decision']].filter(Boolean);
+  var decisions = [c['Resume Decision'], c['Round 1 Decision'], c['Round 2 Decision'], c['Round 3 Decision'], c['Call Decision']].filter(Boolean);
   if (!decisions.length) return 'Pending';
   var decs = decisions.map(function(d) { return String(d).toLowerCase(); });
   if (decs.some(function(d) { return d === 'selected' || d === 'offered' || d === 'yes' || d === 'hired'; })) return 'Selected';
