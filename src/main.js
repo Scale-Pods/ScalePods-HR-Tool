@@ -2540,6 +2540,7 @@ window.cardDecision = function(idx, round, value, btn) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: round, decision: value })
   }).catch(function() {});
+  filterCandidates();
   var drawerBtn = document.querySelector('#decision-container [data-dr="' + round + '"][data-dv="' + value + '"]');
   if (drawerBtn) window.selectDecision(drawerBtn, round, value);
   var card = btn && btn.closest('.cand-card');
@@ -3110,19 +3111,29 @@ window.submitDecisions = function() {
   var email = container.dataset.email || '';
   var campaignName = container.dataset.campaign || '';
 
+  var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
   var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
   var rounds = ['resume', 'round1', 'round2', 'round3'];
   var toSubmit = [];
+  var candIdx = -1;
+  var cands = window._candidateData || [];
+  for (var si = 0; si < cands.length; si++) {
+    if (cands[si].Name === name && cands[si].Email === email) { candIdx = si; break; }
+  }
   rounds.forEach(function(round) {
     var selectedBtn = document.querySelector('#decision-container [data-dr="' + round + '"].dr-selected');
     if (!selectedBtn) return;
+    var dv = selectedBtn.getAttribute('data-dv') || '';
     var roundData = {
       name: name,
       email: email,
       campaignName: campaignName,
       round: round,
-      decision: selectedBtn.getAttribute('data-dv') || ''
+      decision: dv
     };
+    if (candIdx !== -1) {
+      cands[candIdx][fieldMap[round]] = dv === 'Hire' ? 'Hired' : (dv === 'yes' ? 'Selected' : 'Rejected');
+    }
     var commentsEl = document.getElementById('dc-' + round);
     if (commentsEl && commentsEl.value.trim()) {
       roundData.comments = commentsEl.value;
@@ -3152,6 +3163,7 @@ window.submitDecisions = function() {
       if (completed === total && !hasError) {
         if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(16,185,129,0.1);color:var(--emerald);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-check"></i> Decisions submitted successfully!</div>'; }
         if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Submitted'; btn.style.background = 'var(--emerald)'; }
+        filterCandidates();
       }
     })
     .catch(function(err) {
