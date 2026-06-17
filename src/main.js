@@ -2313,7 +2313,7 @@ function getFitLevel(c) {
 }
 
 function getCandidateStage(c) {
-  var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no'; };
+  var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'hired'; };
   if (isDecided(c['Round 3 Decision'])) return 'Round 3';
   if (isDecided(c['Round 2 Decision'])) return 'Round 2';
   if (isDecided(c['Round 1 Decision'])) return 'Round 1';
@@ -2323,6 +2323,7 @@ function getCandidateStage(c) {
 
 function getStatusTags(c) {
   var tags = [];
+  var rd = c['Resume Decision'];
   var r1d = c['Round 1 Decision'];
   var r2d = c['Round 2 Decision'];
   var r3d = c['Round 3 Decision'];
@@ -2331,10 +2332,10 @@ function getStatusTags(c) {
   var r3Date = c['Round 3 Meeting Date'];
 
   if (r1Date || r2Date || r3Date) { tags.push({ label: 'Interview Scheduled', cls: 'status-tag-scheduled' }); }
-  else if (r1d || r2d || r3d) {
-    var decs = [r1d, r2d, r3d].filter(Boolean).map(function(d) { return String(d).toLowerCase(); });
-    if (decs.some(function(d) { return d === 'rejected'; })) tags.push({ label: 'Rejected', cls: 'status-tag-rejected' });
-    else if (decs.some(function(d) { return d === 'selected' || d === 'offered'; })) tags.push({ label: 'Selected', cls: 'status-tag-selected' });
+  else if (rd || r1d || r2d || r3d) {
+    var decs = [rd, r1d, r2d, r3d].filter(Boolean).map(function(d) { return String(d).toLowerCase(); });
+    if (decs.some(function(d) { return d === 'rejected' || d === 'no'; })) tags.push({ label: 'Rejected', cls: 'status-tag-rejected' });
+    else if (decs.some(function(d) { return d === 'selected' || d === 'offered' || d === 'yes' || d === 'hired'; })) tags.push({ label: 'Selected', cls: 'status-tag-selected' });
     else if (decs.some(function(d) { return d === 'pending' || d === 'awaiting'; })) tags.push({ label: 'Awaiting Feedback', cls: 'status-tag-awaiting' });
     else tags.push({ label: 'Pending', cls: 'status-tag-pending' });
   } else {
@@ -2344,12 +2345,12 @@ function getStatusTags(c) {
 }
 
 function getOverallResult(c) {
-  var decisions = [c['Round 1 Decision'], c['Round 2 Decision'], c['Round 3 Decision']].filter(Boolean);
+  var decisions = [c['Resume Decision'], c['Round 1 Decision'], c['Round 2 Decision'], c['Round 3 Decision']].filter(Boolean);
   if (!decisions.length) return 'Pending';
   var decs = decisions.map(function(d) { return String(d).toLowerCase(); });
-  if (decs.some(function(d) { return d === 'selected' || d === 'offered'; })) return 'Selected';
+  if (decs.some(function(d) { return d === 'selected' || d === 'offered' || d === 'yes' || d === 'hired'; })) return 'Selected';
   if (decs.some(function(d) { return d === 'passed' || d === 'completed'; })) return 'Passed';
-  if (decs.some(function(d) { return d === 'rejected'; })) return 'Rejected';
+  if (decs.some(function(d) { return d === 'rejected' || d === 'no'; })) return 'Rejected';
   return 'Pending';
 }
 
@@ -2360,9 +2361,9 @@ function getRoundBadge(decision, assigned) {
   }
   var dec = String(decision).toLowerCase();
   var cls, label = decision;
-  if (dec === 'selected' || dec === 'offered') { cls = 'detail-badge-selected'; }
+  if (dec === 'selected' || dec === 'offered' || dec === 'yes' || dec === 'hired') { cls = 'detail-badge-selected'; }
   else if (dec === 'passed' || dec === 'completed') { cls = 'detail-badge-passed'; }
-  else if (dec === 'rejected') { cls = 'detail-badge-rejected'; }
+  else if (dec === 'rejected' || dec === 'no') { cls = 'detail-badge-rejected'; }
   else { cls = 'detail-badge-pending'; }
   var dots = { 'detail-badge-passed': 'var(--emerald)', 'detail-badge-pending': 'var(--amber)', 'detail-badge-rejected': 'var(--red)', 'detail-badge-selected': 'var(--blue)' };
   return '<span class="' + cls + '"><span class="status-dot" style="background:' + (dots[cls] || 'var(--text3)') + ';"></span> ' + label + '</span>';
