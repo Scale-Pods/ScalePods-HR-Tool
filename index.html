@@ -1341,7 +1341,13 @@
             <h2 class="page-heading">Interview Center</h2>
             <p class="page-sub">Synchronize your team, manage sessions, and track momentum</p>
           </div>
-          <div class="chip-btn" onclick="alert('All Campaigns')"><i class="ti ti-speakerphone"></i> All Campaigns</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="mf-toggle">
+              <button class="mf-btn" id="mf-all-btn" onclick="if(!window._meetingsShowAll)window.toggleShowAll()">All</button>
+              <button class="mf-btn mf-active" id="mf-mine-btn" onclick="if(window._meetingsShowAll)window.toggleShowAll()">Mine</button>
+            </div>
+            <div class="chip-btn" onclick="alert('All Campaigns')"><i class="ti ti-speakerphone"></i> All Campaigns</div>
+          </div>
         </div>
 
         <div class="mini-stats">
@@ -1400,7 +1406,7 @@
               <div class="empty-state-title">No Engagements Today</div>
               <div class="empty-state-desc">Select a date or schedule a new interview session</div>
             </div>
-            <div id="detail-list" style="display:none;"></div>
+            <div id="detail-list" style="display:none;max-height:260px;overflow-y:auto;"></div>
           </div>
         </div>
 

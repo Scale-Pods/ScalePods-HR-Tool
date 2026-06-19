@@ -24,6 +24,8 @@ function updateDynamicUserInfo(user) {
   const rawName = user.user_metadata?.full_name || user.email.split('@')[0];
   const name = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
   window._userName = name; // Store globally for other functions
+  window._userEmail = user.email;
+  window._userDisplayName = user.user_metadata?.full_name || name;
   
   // Determine Greeting based on time
   const hour = new Date().getHours();
@@ -490,13 +492,15 @@ window.buildCalendar = function() {
       el.classList.add('selected');
     }
     if (eventDays.some(ed => ed === d)) {
-      el.classList.add('has-event');
-      // Add round-type indicators
       var isoKey = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
       var evs = window._meetingsEventMap[isoKey] || [];
-      var dot = document.createElement('span');
-      dot.style.cssText = 'display:block;width:5px;height:5px;border-radius:50%;margin:1px auto 0;background:' + (evs[0] ? evs[0].color : 'var(--blue)') + ';';
-      el.appendChild(dot);
+      var showDot = window._meetingsShowAll || evs.some(isMeetingMine);
+      if (showDot) {
+        el.classList.add('has-event');
+        var dot = document.createElement('span');
+        dot.style.cssText = 'display:block;width:5px;height:5px;border-radius:50%;margin:1px auto 0;background:' + (evs[0] ? evs[0].color : 'var(--blue)') + ';';
+        el.appendChild(dot);
+      }
     }
     el.addEventListener('click', function() {
       document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected'));
@@ -533,37 +537,95 @@ function updateDayDetail(day) {
 
   var isoKey = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
   var evs = (window._meetingsEventMap || {})[isoKey] || [];
-  var count = evs.length;
+
+  evs.forEach(function(ev) {
+    ev._isMine = isMeetingMine(ev);
+  });
+
+  var showAll = window._meetingsShowAll || false;
+  var displayEvs = showAll ? evs : evs.filter(function(ev) { return ev._isMine; });
+  var count = displayEvs.length;
+  var totalCount = evs.length;
 
   document.getElementById('detail-count').textContent = count + ' interview' + (count !== 1 ? 's' : '') + ' scheduled';
-  document.getElementById('detail-empty').style.display = count === 0 ? 'flex' : 'none';
+  document.getElementById('detail-empty').style.display = totalCount === 0 || (count === 0) ? 'flex' : 'none';
   var listEl = document.getElementById('detail-list');
-  listEl.style.display = count > 0 ? 'block' : 'none';
+  listEl.style.display = (totalCount > 0 && count > 0) ? 'block' : 'none';
 
-  if (count > 0) {
+  if (totalCount > 0 && count > 0) {
+    window._meetingCands = (window._candidateData || []).concat(window._dashboardCampaignData || []).concat(window._allMeetingsCandidates || []);
+    var cands = window._meetingCands;
     var roundLabels = ['Round 1', 'Round 2', 'Round 3'];
-    listEl.innerHTML = evs.map(function(ev) {
+    listEl.innerHTML = displayEvs.map(function(ev) {
       var label = roundLabels[ev.round - 1] || ('Round ' + ev.round);
       var linkHtml = ev.link
-        ? '<a href="' + ev.link + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--blue);text-decoration:none;margin-top:4px;"><i class="ti ti-video"></i> Join Meeting</a>'
+        ? '<a href="' + ev.link + '" target="_blank" rel="noopener" class="btn-capsule btn-capsule-join"><i class="ti ti-video" style="font-size:12px;"></i> Join Meeting</a>'
         : '';
       var eventIdHtml = ev.eventId
-        ? '<span style="font-size:10px;color:var(--text3);margin-left:8px;"><i class="ti ti-hash"></i>' + ev.eventId + '</span>'
+        ? '<span style="font-size:8px;color:var(--text3);opacity:.5;"><i class="ti ti-hash" style="font-size:8px;"></i>' + ev.eventId + '</span>'
         : '';
       var intEmail = ev.interviewer || '';
       var reschedHtml = ev.eventId 
-? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
+? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" class="btn-capsule btn-capsule-resched"><i class="ti ti-calendar-time" style="font-size:12px;pointer-events:none;"></i> Reschedule</button>'
         : '';
-      return '<div style="padding:12px;background:var(--surface3);border-radius:10px;border:1px solid var(--border-color);margin-bottom:8px;">' +
+      var mineBadge = ev._isMine ? '<span style="font-size:9px;font-weight:600;color:var(--blue);background:var(--blue-glass);padding:1px 8px;border-radius:10px;margin-left:6px;">You</span>' : '';
+
+      var candIdx = -1;
+      for (var ci = 0; ci < cands.length; ci++) {
+        if (cands[ci].Email === ev.email) { candIdx = ci; break; }
+      }
+
+      var decisionField = 'Round ' + ev.round + ' Decision';
+      var commentsField = 'Round ' + ev.round + ' Comments';
+      var curDecision = candIdx >= 0 ? (cands[candIdx][decisionField] || '') : '';
+      var curComments = candIdx >= 0 ? (cands[candIdx][commentsField] || '') : '';
+      var isDecided = ['selected','rejected','hired','yes','no'].indexOf(curDecision.toLowerCase()) !== -1;
+
+      var decisionSectionHtml = '';
+      if (candIdx >= 0) {
+        decisionSectionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
+        if (isDecided) {
+          var dLabel = curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'Rejected' : (curDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected');
+          var dColor = curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)';
+          decisionSectionHtml += '<div style="font-size:10px;font-weight:600;color:' + dColor + ';padding:2px 0;">' + dLabel + '</div>';
+        } else {
+          decisionSectionHtml +=
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Decision?</span>' +
+              '<div style="display:flex;gap:4px;margin-left:auto;">' +
+                '<button onclick="window.meetingDecision(' + candIdx + ',' + ev.round + ',\'yes\',this)" style="padding:3px 10px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="ti ti-circle-check" style="font-size:10px;"></i> Yes</button>' +
+                '<button onclick="window.meetingDecision(' + candIdx + ',' + ev.round + ',\'no\',this)" style="padding:3px 10px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="ti ti-circle-x" style="font-size:10px;"></i> No</button>' +
+              '</div>' +
+            '</div>';
+        }
+        decisionSectionHtml += '</div>';
+      }
+
+      return '<div class="meeting-card' + (ev._isMine ? ' meeting-mine' : '') + '" style="padding:12px;background:var(--surface3);border-radius:10px;border:1px solid ' + (ev._isMine ? 'var(--blue)' : 'var(--border-color)') + ';margin-bottom:8px;cursor:pointer;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
-          '<span style="font-size:12px;font-weight:700;color:' + ev.color + ';">' + label + '</span>' +
+          '<span style="display:flex;align-items:center;font-size:12px;font-weight:700;color:' + ev.color + ';">' + label + mineBadge + '</span>' +
           '<span style="font-size:11px;color:var(--text3);"><i class="ti ti-clock"></i> ' + (ev.time || 'TBD') + '</span>' +
         '</div>' +
         '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">' + ev.name + (ev.role ? ' <span style="font-weight:400;color:var(--text3);">— ' + ev.role + '</span>' : '') + '</div>' +
         (ev.interviewer ? '<div style="font-size:11px;color:var(--text2);"><i class="ti ti-user"></i> ' + ev.interviewer + '</div>' : '') +
-        '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;">' + linkHtml + eventIdHtml + reschedHtml + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;">' + linkHtml + reschedHtml + '</div>' +
+        (eventIdHtml ? '<div style="display:flex;justify-content:flex-end;margin-top:2px;">' + eventIdHtml + '</div>' : '') +
+        decisionSectionHtml +
         '</div>';
     }).join('');
+  }
+  // Delegated click: toggle decision section on .meeting-card
+  if (!listEl._cardToggleAttached) {
+    listEl.addEventListener('click', function(ce) {
+      var card = ce.target.closest('.meeting-card');
+      if (!card) return;
+      if (ce.target.closest('button, a, textarea')) return;
+      var sec = card.querySelector('.meeting-decision');
+      if (sec) {
+        sec.style.display = sec.style.display !== 'none' ? 'none' : 'block';
+      }
+    });
+    listEl._cardToggleAttached = true;
   }
 }
 
@@ -1128,6 +1190,27 @@ window.setFilter = function(el, type) {
 // ─── Meetings / Interview Center ───────────────────────────────────────────
 
 window._meetingsFilter = 'all';
+window._meetingsShowAll = false;
+
+function isMeetingMine(ev) {
+  var userName = ((window._userDisplayName || window._userName) || '').toLowerCase();
+  var userEmail = (window._userEmail || '').toLowerCase();
+  var intv = (ev.interviewer || '').toLowerCase();
+  return !!(userName && intv === userName) || !!(userEmail && intv === userEmail);
+}
+
+window.toggleShowAll = function() {
+  window._meetingsShowAll = !window._meetingsShowAll;
+  var allBtn = document.getElementById('mf-all-btn');
+  var mineBtn = document.getElementById('mf-mine-btn');
+  if (allBtn) allBtn.classList.toggle('mf-active', window._meetingsShowAll);
+  if (mineBtn) mineBtn.classList.toggle('mf-active', !window._meetingsShowAll);
+  window.buildCalendar();
+  var day = selectedDay || today.getDate();
+  updateDayDetail(day);
+  var liveTrackFilter = window._meetingsFilter || 'all';
+  renderLiveDailyTrack(liveTrackFilter);
+};
 
 window.loadMeetingsPage = function() {
   fetchMeetingsInterviewData();
@@ -1350,34 +1433,89 @@ function renderLiveDailyTrack(filter) {
   }
 
   if (emptyState) emptyState.style.display = 'none';
+  showEvs.forEach(function(ev) {
+    ev._isMine = isMeetingMine(ev);
+  });
+  if (!window._meetingsShowAll) {
+    showEvs = showEvs.filter(function(ev) { return ev._isMine; });
+    if (!showEvs.length) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No meetings assigned to you</div>'; return; }
+  }
+  window._meetingCands = (window._candidateData || []).concat(window._dashboardCampaignData || []).concat(window._allMeetingsCandidates || []);
+  var mtCands = window._meetingCands;
   var roundLabels = ['Round 1', 'Round 2', 'Round 3'];
   listEl.innerHTML = showEvs.map(function(ev) {
     var label = roundLabels[ev.round - 1] || ('Round ' + ev.round);
     var dateStr = ev._date ? ' · ' + new Date(ev._date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     var linkHtml = ev.link
-      ? '<a href="' + ev.link + '" target="_blank" rel="noopener" style="font-size:11px;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:3px;"><i class="ti ti-external-link"></i> Join</a>'
+      ? '<a href="' + ev.link + '" target="_blank" rel="noopener" class="btn-capsule btn-capsule-join"><i class="ti ti-video" style="font-size:12px;"></i> Join</a>'
       : '';
     var eidHtml = ev.eventId
-      ? '<span style="font-size:10px;color:var(--text3);"><i class="ti ti-hash"></i>' + ev.eventId + '</span>'
+      ? '<span style="font-size:8px;color:var(--text3);opacity:.5;"><i class="ti ti-hash" style="font-size:8px;"></i>' + ev.eventId + '</span>'
       : '';
     var intEmail = ev.interviewer || '';
     var reschedHtml = ev.eventId 
-      ? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" style="margin-left:8px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" onmouseover="this.style.color=\'var(--blue)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="ti ti-calendar-time" style="pointer-events:none;"></i> Reschedule</button>'
+? '<button data-reschedule="1" data-event-id="' + ev.eventId + '" data-email="' + (ev.interviewer||'') + '" data-candidate="' + (ev.email||ev.name||'') + '" class="btn-capsule btn-capsule-resched"><i class="ti ti-calendar-time" style="font-size:12px;pointer-events:none;"></i> Reschedule</button>'
       : '';
-    return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--separator);">' +
+    var mineBadge = ev._isMine ? ' <span style="font-size:9px;font-weight:600;color:var(--blue);background:var(--blue-glass);padding:1px 8px;border-radius:10px;">You</span>' : '';
+
+    var mtCandIdx = -1;
+    for (var ci = 0; ci < mtCands.length; ci++) {
+      if (mtCands[ci].Email === ev.email) { mtCandIdx = ci; break; }
+    }
+
+    var mtDecisionField = 'Round ' + ev.round + ' Decision';
+    var mtCurDecision = mtCandIdx >= 0 ? (mtCands[mtCandIdx][mtDecisionField] || '') : '';
+    var mtIsDecided = ['selected','rejected','hired','yes','no'].indexOf(mtCurDecision.toLowerCase()) !== -1;
+
+    var mtDecisionHtml = '';
+    if (mtCandIdx >= 0) {
+      mtDecisionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
+      if (mtIsDecided) {
+        var mtLabel = mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'Rejected' : (mtCurDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected');
+        var mtColor = mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)';
+        mtDecisionHtml += '<div style="font-size:10px;font-weight:600;color:' + mtColor + ';padding:2px 0;">' + mtLabel + '</div>';
+      } else {
+        mtDecisionHtml +=
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Decision?</span>' +
+            '<div style="display:flex;gap:4px;margin-left:auto;">' +
+              '<button onclick="window.meetingDecision(' + mtCandIdx + ',' + ev.round + ',\'yes\',this)" style="padding:3px 10px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="ti ti-circle-check" style="font-size:10px;"></i> Yes</button>' +
+              '<button onclick="window.meetingDecision(' + mtCandIdx + ',' + ev.round + ',\'no\',this)" style="padding:3px 10px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="ti ti-circle-x" style="font-size:10px;"></i> No</button>' +
+            '</div>' +
+          '</div>';
+      }
+      mtDecisionHtml += '</div>';
+    }
+
+    return '<div class="meeting-card ' + (ev._isMine ? 'meeting-mine-row' : '') + '" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--separator);cursor:pointer;' + (ev._isMine ? 'background:var(--blue-glass);border-left:3px solid var(--blue);' : '') + '">' +
       '<div style="width:10px;height:10px;border-radius:50%;background:' + ev.color + ';flex-shrink:0;margin-top:3px;"></div>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;">' +
           '<span style="font-size:13px;font-weight:600;color:var(--text);">' + ev.name + '</span>' +
           '<span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:8px;">' + (ev.time || 'TBD') + dateStr + '</span>' +
         '</div>' +
-        '<div style="font-size:11px;color:' + ev.color + ';font-weight:600;margin-bottom:2px;">' + label + (ev.role ? ' · ' + ev.role : '') + '</div>' +
+        '<div style="font-size:11px;color:' + ev.color + ';font-weight:600;margin-bottom:2px;">' + label + (ev.role ? ' · ' + ev.role : '') + mineBadge + '</div>' +
         (ev.interviewer ? '<div style="font-size:11px;color:var(--text2);"><i class="ti ti-user"></i> ' + ev.interviewer + '</div>' : '') +
-        '<div style="display:flex;align-items:center;gap:10px;margin-top:4px;">' + linkHtml + eidHtml + reschedHtml + '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-top:4px;">' + linkHtml + reschedHtml + '</div>' +
+        (eidHtml ? '<div style="display:flex;justify-content:flex-end;margin-top:2px;">' + eidHtml + '</div>' : '') +
+        mtDecisionHtml +
       '</div>' +
     '</div>';
   }).join('');
+  if (!listEl._cardToggleAttached) {
+    listEl.addEventListener('click', function(ce) {
+      var card = ce.target.closest('.meeting-card');
+      if (!card) return;
+      if (ce.target.closest('button, a, textarea')) return;
+      var sec = card.querySelector('.meeting-decision');
+      if (sec) {
+        sec.style.display = sec.style.display !== 'none' ? 'none' : 'block';
+      }
+    });
+    listEl._cardToggleAttached = true;
+  }
 }
+
 
 /* ─── Dashboard Campaign Selector ─── */
 
@@ -2146,7 +2284,9 @@ window.loadCampaignDetail = function() {
             }, 3000);
           })
           .catch(function(e) {
-            fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> Upload failed: ' + e.message;
+            var msg = e.message;
+            if (msg.indexOf('413') !== -1) msg = 'file(s) too large (server limit exceeded). Try uploading fewer or smaller files.';
+            fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> Upload failed: ' + msg;
             submitBtn.disabled = false;
           });
       });
@@ -2557,6 +2697,54 @@ window.cardDecision = function(idx, round, value, btn) {
           '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>' +
           '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> ' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>';
       }
+    }
+  }
+};
+
+window.meetingDecision = function(idx, round, value, btn) {
+  var cands = window._meetingCands || window._candidateData || [];
+  var c = cands[idx];
+  if (!c) return;
+  var fieldMap = { 1: 'Round 1 Decision', 2: 'Round 2 Decision', 3: 'Round 3 Decision' };
+  var actionMap = { 1: 'Round 1', 2: 'Round 2', 3: 'Round 3' };
+  c[fieldMap[round]] = value === 'yes' ? 'Selected' : 'Rejected';
+  fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round]), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'meeting-card', round: round, decision: value })
+  }).catch(function() {});
+  var card = btn && (btn.closest('.meeting-card') || btn.closest('[class*="meeting"]'));
+  if (card) {
+    var section = card.querySelector('.meeting-decision');
+    if (section) {
+      section.innerHTML =
+        '<div style="margin-top:4px;">' +
+          '<textarea placeholder="Add comments..." style="width:100%;min-height:32px;padding:4px 8px;background:var(--surface1);border:1px solid var(--border-color);border-radius:6px;color:var(--text);font-size:10px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;"></textarea>' +
+          '<div style="display:flex;justify-content:flex-end;margin-top:4px;">' +
+            '<button onclick="window.submitMeetingDecision(' + idx + ',' + round + ',this)" style="padding:4px 14px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="ti ti-send"></i> Submit</button>' +
+          '</div>' +
+        '</div>';
+    }
+  }
+};
+
+window.submitMeetingDecision = function(idx, round, btn) {
+  var cands = window._meetingCands || window._candidateData || [];
+  var c = cands[idx];
+  if (!c) return;
+  var card = btn && (btn.closest('.meeting-card') || btn.closest('[class*="meeting"]'));
+  if (card) {
+    var section = card.querySelector('.meeting-decision');
+    var textarea = section && section.querySelector('textarea');
+    var comment = textarea ? textarea.value : '';
+    var commentsField = 'Round ' + round + ' Comments';
+    c[commentsField] = comment;
+    if (section) {
+      var decisionField = 'Round ' + round + ' Decision';
+      var val = c[decisionField];
+      var isRejected = val === 'Rejected' || val === 'no';
+      var label = isRejected ? 'Rejected' : 'Selected';
+      var color = isRejected ? 'var(--red)' : 'var(--emerald)';
+      section.innerHTML = '<span style="font-size:10px;font-weight:600;color:' + color + ';">' + label + '</span>';
     }
   }
 };
@@ -3082,8 +3270,8 @@ function renderInterviewsResponse(panel, data) {
             (eventId ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);"><i class="ti ti-hash" style="font-size:14px;"></i> ID: ' + eventId + '</div>' : '') +
           '</div>' +
           '<div style="display:flex;gap:8px;">' +
-            (link ? '<a href="' + link + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--blue);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-video"></i> Join</a>' : '') +
-            (calLink ? '<a href="' + calLink + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--surface1);color:var(--text2);border:1px solid var(--border-color);border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-calendar-refresh"></i> Reschedule</a>' : '') +
+            (link ? '<a href="' + link + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--blue);color:#fff;border-radius:50px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;" onmouseover="this.style.opacity=\'0.85\'" onmouseout="this.style.opacity=\'1\'"><i class="ti ti-video"></i> Join</a>' : '') +
+            (calLink ? '<a href="' + calLink + '" target="_blank" style="flex:1;padding:8px 12px;background:var(--surface1);color:var(--text2);border:1px solid var(--border-color);border-radius:50px;font-size:12px;font-weight:600;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'var(--surface1)\'"><i class="ti ti-calendar-refresh"></i> Reschedule</a>' : '') +
           '</div>' +
         '</div>' +
       '</div>';
@@ -3218,6 +3406,7 @@ document.addEventListener('click', function(e) {
     } else {
       console.error("window.openRescheduleModal is not defined!");
     }
+    return;
   }
 });
 

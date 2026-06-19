@@ -1554,6 +1554,22 @@ body[data-theme="dark"] .filter-tab.active { background: #4B5563; }
 .chip-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: var(--surface); backdrop-filter: blur(40px); border: 1px solid var(--glass-edge); border-radius: 50px; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .2s ease; box-shadow: var(--shadow-xs); font-family: inherit; }
 .chip-btn:hover { background: var(--surface-solid); box-shadow: var(--shadow-sm); color: var(--text); }
 
+/* ═══ Meeting capsule buttons ═══ */
+.btn-capsule { display: inline-flex; align-items: center; gap: 5px; padding: 5px 14px; border-radius: 50px; font-size: 11px; font-weight: 600; text-decoration: none; transition: all .15s ease; font-family: inherit; cursor: pointer; line-height: 1.4; }
+.btn-capsule-join { background: var(--blue); color: #fff; border: none; }
+.btn-capsule-join:hover { opacity: .85; }
+.btn-capsule-resched { background: var(--surface3); color: var(--text2); border: 1px solid var(--border-color); }
+.btn-capsule-resched:hover { background: var(--surface1); border-color: var(--text3); }
+
+/* ═══ Meeting capsule toggle & highlight ═══ */
+.mf-toggle { display: flex; gap: 2px; background: var(--surface3); padding: 2px; border-radius: 8px; }
+.mf-btn { padding: 5px 14px; border: none; background: transparent; color: var(--text3); font-size: 12px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all .2s ease; font-family: inherit; }
+.mf-btn:hover { color: var(--text2); }
+.mf-btn.mf-active { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: var(--shadow-xs); }
+body[data-theme="dark"] .mf-btn.mf-active { background: #4B5563; }
+.meeting-mine { background: var(--blue-glass) !important; }
+.meeting-mine-row { background: var(--blue-glass) !important; border-left: 3px solid var(--blue) !important; }
+
 /* ═══ Responsive ═══ */
 @media (max-width: 1400px) { .bottom-grid { grid-template-columns: 1fr 1fr; } }
 
