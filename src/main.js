@@ -63,6 +63,8 @@ function updateDynamicUserInfo(user) {
       navUsers.style.setProperty('display', 'none', 'important');
     }
   }
+
+  window._userRole = (document.querySelector('.sidebar-user .user-role')?.textContent || 'Admin').trim();
 }
 
 // ─── Navbar scroll effect ───
@@ -154,9 +156,11 @@ document.addEventListener('DOMContentLoaded', function() {
             password,
             options: {
               data: { full_name: email.split('@')[0] }
-            }
-          });
-        }
+    }
+  });
+  window._userClickedDecision = false;
+  window.updateSubmitButtonText();
+}
 
         if (result.error) {
           errorEl.textContent = result.error.message;
@@ -346,8 +350,12 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
 
   // History API Integration
   if (!skipPush) {
-    const newPath = id === 'dashboard' ? '/' : '/' + id;
-    if (window.location.pathname !== newPath) {
+    let newPath = id === 'dashboard' ? '/' : '/' + id;
+    if (id === 'campaign-detail' && window._campaignDetailName) {
+      newPath += '?campaign=' + encodeURIComponent(window._campaignDetailName);
+    }
+    const currentPath = window.location.pathname + window.location.search;
+    if (currentPath !== newPath) {
       window.history.pushState({ pageId: id }, pageTitle, newPath);
     }
   }
@@ -356,6 +364,9 @@ window.navigate = function(id, clickedNavItem, skipPush = false) {
 // Handle browser back/forward
 window.onpopstate = function(event) {
   const pageId = (event.state && event.state.pageId) || 'dashboard';
+  if (pageId === 'campaign-detail') {
+    window._campaignDetailName = '';
+  }
   window.navigate(pageId, null, true);
 };
 
@@ -585,8 +596,8 @@ function updateDayDetail(day) {
       if (candIdx >= 0) {
         decisionSectionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
         if (isDecided) {
-          var dLabel = curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'Rejected' : (curDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected');
-          var dColor = curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)';
+          var dLabel = curDecision.toLowerCase() === 'reserve' ? 'Reserved' : (curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'Rejected' : (curDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
+          var dColor = curDecision.toLowerCase() === 'reserve' ? 'var(--amber)' : (curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)');
           decisionSectionHtml += '<div style="font-size:10px;font-weight:600;color:' + dColor + ';padding:2px 0;">' + dLabel + '</div>';
         } else {
           decisionSectionHtml +=
@@ -1471,8 +1482,8 @@ function renderLiveDailyTrack(filter) {
     if (mtCandIdx >= 0) {
       mtDecisionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
       if (mtIsDecided) {
-        var mtLabel = mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'Rejected' : (mtCurDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected');
-        var mtColor = mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)';
+        var mtLabel = mtCurDecision.toLowerCase() === 'reserve' ? 'Reserved' : (mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'Rejected' : (mtCurDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
+        var mtColor = mtCurDecision.toLowerCase() === 'reserve' ? 'var(--amber)' : (mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)');
         mtDecisionHtml += '<div style="font-size:10px;font-weight:600;color:' + mtColor + ';padding:2px 0;">' + mtLabel + '</div>';
       } else {
         mtDecisionHtml +=
@@ -1628,7 +1639,7 @@ function updateDashboardMetrics(candidates, campaign) {
   var passRate = total ? Math.round((passed / total) * 100) : 0;
 
   /* Pipeline stages */
-  var _isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no'; };
+  var _isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'reserve'; };
   var stages = { screening: 0, round1: 0, round2: 0, round3: 0, hired: 0 };
   candidates.forEach(function(c) {
     if (_isDecided(c['Round 3 Decision']) && (String(c['Round 3 Decision']).toLowerCase() === 'selected' || String(c['Round 3 Decision']).toLowerCase() === 'offered')) {
@@ -2175,7 +2186,7 @@ window.loadCampaignDetail = function() {
     }
 
     var MAX_FILE_SIZE = 20 * 1024 * 1024;
-    var ALLOWED_EXTS = ['pdf','png','jpg','jpeg','gif','webp'];
+    var ALLOWED_EXTS = ['pdf','png','jpg','jpeg','gif','webp','docx'];
 
     function isValidFile(name) {
       var ext = name.split('.').pop().toLowerCase();
@@ -2200,7 +2211,7 @@ window.loadCampaignDetail = function() {
       }
       if (added > 0) {
         if (fb) { fb.style.display = 'none'; fb.innerHTML = ''; }
-        if (hintEl) hintEl.textContent = 'Supports PDF and image files';
+        if (hintEl) hintEl.textContent = 'Supports PDF, Word (DOCX) and image files';
       }
       if (rejected.length) {
         if (fb) {
@@ -2219,7 +2230,7 @@ window.loadCampaignDetail = function() {
         if (mode === 'folder') {
           inp.webkitdirectory = true;
         } else {
-          inp.accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,application/pdf,image/png,image/jpeg,image/gif,image/webp';
+          inp.accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.docx,application/pdf,image/png,image/jpeg,image/gif,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         }
         inp.onchange = function() {
           if (this.files && this.files.length) {
@@ -2252,9 +2263,68 @@ window.loadCampaignDetail = function() {
       });
     }
 
+    // ── DOCX → PDF conversion helper ──────────────────────────────────────
+    async function convertDocxToPdf(docxFile) {
+      if (!window.mammoth || !window.jspdf) {
+        throw new Error('Conversion libraries not loaded. Please refresh and try again.');
+      }
+      // 1. Read file as ArrayBuffer
+      var arrayBuffer = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) { resolve(e.target.result); };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(docxFile);
+      });
+
+      // 2. Convert DOCX → HTML using Mammoth
+      var result = await window.mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+      var htmlContent = result.value || '';
+
+      // 3. Render into a hidden, styled off-screen container
+      var container = document.createElement('div');
+      container.style.cssText = 'position:absolute;left:-9999px;top:0;width:750px;padding:48px 60px;background:#fff;color:#222;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;box-sizing:border-box;';
+      container.innerHTML =
+        '<style>' +
+          'h1{font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:6px;margin:0 0 14px}' +
+          'h2{font-size:17px;font-weight:700;margin:18px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}' +
+          'h3{font-size:14px;font-weight:700;margin:14px 0 6px}' +
+          'p{margin:0 0 10px}' +
+          'ul,ol{margin:0 0 10px 20px}' +
+          'li{margin-bottom:4px}' +
+          'table{width:100%;border-collapse:collapse;margin-bottom:10px}' +
+          'th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}' +
+          'th{background:#f0f0f0;font-weight:700}' +
+          'strong{font-weight:700}em{font-style:italic}' +
+        '</style>' +
+        htmlContent;
+      document.body.appendChild(container);
+
+      // 4. Generate PDF via jsPDF html renderer
+      var jsPDF = window.jspdf.jsPDF;
+      var doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      await new Promise(function(resolve) {
+        doc.html(container, {
+          callback: function(d) { resolve(d); },
+          x: 0, y: 0,
+          width: 210,
+          windowWidth: 750,
+          html2canvas: { scale: 1.5, useCORS: true, logging: false }
+        });
+      });
+
+      // 5. Remove temp container
+      document.body.removeChild(container);
+
+      // 6. Return as a PDF File
+      var pdfBlob = doc.output('blob');
+      var baseName = docxFile.name.replace(/\.docx$/i, '');
+      return new File([pdfBlob], baseName + '.pdf', { type: 'application/pdf' });
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     var submitBtn = document.getElementById('submit-resumes-btn');
     if (submitBtn) {
-      submitBtn.addEventListener('click', function() {
+      submitBtn.addEventListener('click', async function() {
         var fb = document.getElementById('submit-feedback');
         if (!fb) return;
         var files = window._pendingFiles;
@@ -2263,11 +2333,42 @@ window.loadCampaignDetail = function() {
           fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> No files to submit. Please add resumes first.';
           return;
         }
-        fb.style.display = 'block';
-        fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + files.length + ' file(s)...';
         submitBtn.disabled = true;
+
+        // Check if any DOCX files need conversion
+        var hasDocx = files.some(function(f) { return f.name.toLowerCase().endsWith('.docx'); });
+        if (hasDocx) {
+          fb.style.display = 'block';
+          fb.innerHTML = '<i class="ti ti-file-type-pdf" style="color:var(--blue)"></i> Converting Word documents to PDF...';
+        }
+
+        // Convert all DOCX files to PDF, keep others as-is
+        var processedFiles = [];
+        var convErrors = [];
+        for (var i = 0; i < files.length; i++) {
+          var file = files[i];
+          if (file.name.toLowerCase().endsWith('.docx')) {
+            try {
+              var pdfFile = await convertDocxToPdf(file);
+              processedFiles.push(pdfFile);
+            } catch (convErr) {
+              convErrors.push(file.name + ': ' + convErr.message);
+              processedFiles.push(file); // fallback: upload original
+            }
+          } else {
+            processedFiles.push(file);
+          }
+        }
+
+        if (convErrors.length) {
+          fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:var(--amber)"></i> Warning: ' + convErrors.join('; ') + '. Sending originals instead.';
+        } else {
+          fb.style.display = 'block';
+          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + processedFiles.length + ' file(s)...';
+        }
+
         var fd = new FormData();
-        for (var i = 0; i < files.length; i++) { fd.append('resumes', files[i]); }
+        for (var j = 0; j < processedFiles.length; j++) { fd.append('resumes', processedFiles[j]); }
         fd.append('campaignName', window._campaignDetailName || '');
         fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
           .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -2279,8 +2380,6 @@ window.loadCampaignDetail = function() {
               submitBtn.disabled = false;
               window._pendingFiles = [];
               renderFileList();
-              var du = document.getElementById('drop-zone');
-              if (du) du.innerHTML = '<div style="padding:40px 20px;text-align:center;"><i class="ti ti-cloud-upload" style="font-size:32px;display:block;margin-bottom:8px;color:var(--text3);"></i><span style="color:var(--text3);font-size:13px;">Drag &amp; drop resumes here, or click to browse</span></div>';
             }, 3000);
           })
           .catch(function(e) {
@@ -2453,7 +2552,7 @@ function getFitLevel(c) {
 }
 
 function getCandidateStage(c) {
-  var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'hired'; };
+  var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'hired' || s === 'reserve'; };
   if (isDecided(c['Round 3 Decision'])) return 'Round 3';
   if (isDecided(c['Round 2 Decision'])) return 'Round 2';
   if (isDecided(c['Round 1 Decision'])) return 'Round 1';
@@ -2505,6 +2604,7 @@ function getRoundBadge(decision, assigned) {
   if (dec === 'selected' || dec === 'offered' || dec === 'yes' || dec === 'hired') { cls = 'detail-badge-selected'; }
   else if (dec === 'passed' || dec === 'completed') { cls = 'detail-badge-passed'; }
   else if (dec === 'rejected' || dec === 'no') { cls = 'detail-badge-rejected'; }
+  else if (dec === 'reserve') { cls = 'detail-badge-pending'; label = 'Reserved'; }
   else { cls = 'detail-badge-pending'; }
   var dots = { 'detail-badge-passed': 'var(--emerald)', 'detail-badge-pending': 'var(--amber)', 'detail-badge-rejected': 'var(--red)', 'detail-badge-selected': 'var(--blue)' };
   return '<span class="' + cls + '"><span class="status-dot" style="background:' + (dots[cls] || 'var(--text3)') + ';"></span> ' + label + '</span>';
@@ -2608,7 +2708,7 @@ function renderCandidates(list) {
       if (campaign['Round ' + cri]) roundList.push(campaign['Round ' + cri]);
     }
 
-    var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no'; };
+    var isDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'reserve'; };
     var currentRoundIdx = 0;
     if (isDecided(c['Round 3 Decision'])) currentRoundIdx = roundList.length;
     else if (isDecided(c['Round 2 Decision'])) currentRoundIdx = Math.min(roundList.length, 2);
@@ -2658,10 +2758,12 @@ function renderCandidates(list) {
         else if (!skipR3 && roundList.length >= 3) { nextKey = 'round3'; nextLabel = 'Round 3'; }
         if (!nextKey) return '';
         var isLastRound = nextKey.indexOf('round') === 0 && nextKey === 'round' + roundList.length;
+        var reserveBtn = isLastRound ? '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'reserve\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock" style="font-size:10px;"></i> Reserve</button>' : '';
         return '<div class="card-decision" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;border-top:1px solid var(--separator);margin-top:6px;">' +
           '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + nextLabel + '?</span>' +
           '<div style="display:flex;gap:4px;margin-left:auto;">' +
             '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'' + (isLastRound ? 'Hire' : 'yes') + '\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check" style="font-size:10px;"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
+            reserveBtn +
             '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'no\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-x" style="font-size:10px;"></i> No</button>' +
           '</div>' +
         '</div>';
@@ -2670,35 +2772,111 @@ function renderCandidates(list) {
   }).join('');
 }
 
+window._pendingDecision = null;
+
+window.showDecisionConfirm = function(name, label, round, value, idx, role) {
+  window._pendingDecision = { idx: idx, round: round, value: value };
+  var initials = getInitials(name);
+  var avColor = avatarColor(name);
+  var iconEl = document.getElementById('decision-confirm-icon');
+  iconEl.style.background = avColor;
+  iconEl.style.color = '#fff';
+  iconEl.textContent = initials;
+  if (value === 'Hire') {
+    document.getElementById('decision-confirm-title').textContent = 'Hire ' + name + '?';
+    document.getElementById('decision-confirm-desc').textContent = 'This candidate will be selected for the role of ' + (role || 'this position') + ' and cannot be reversed.';
+    var confirmBtn = document.getElementById('decision-confirm-btn');
+    confirmBtn.className = 'btn-danger';
+    confirmBtn.innerHTML = '<i class="ti ti-circle-check"></i> Yes, Hire';
+  } else {
+    document.getElementById('decision-confirm-title').textContent = 'Confirm ' + label + '?';
+    document.getElementById('decision-confirm-desc').textContent = 'Are you sure you want to mark ' + name + ' as ' + label + ' for this round?';
+    var confirmBtn = document.getElementById('decision-confirm-btn');
+    confirmBtn.className = value === 'no' ? 'btn-danger' : 'btn-primary';
+    confirmBtn.innerHTML = '<i class="ti ti-' + (value === 'reserve' ? 'clock' : value === 'no' ? 'circle-x' : 'circle-check') + '"></i> Yes, ' + label;
+  }
+  document.getElementById('decision-confirm-overlay').classList.add('open');
+  document.getElementById('decision-confirm-modal').classList.add('open');
+};
+
+window.closeDecisionConfirm = function() {
+  document.getElementById('decision-confirm-overlay').classList.remove('open');
+  document.getElementById('decision-confirm-modal').classList.remove('open');
+  window._pendingDecision = null;
+};
+
+window.confirmDecision = function() {
+  var pd = window._pendingDecision;
+  if (!pd) return;
+  closeDecisionConfirm();
+  if (pd.isDrawer) {
+    window.selectDecision(pd.btn, pd.round, pd.value);
+    return;
+  }
+  var cands = window._candidateData || [];
+  var c = cands[pd.idx];
+  if (!c) return;
+  var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
+  var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
+  c[fieldMap[pd.round]] = pd.value === 'Hire' ? 'Hired' : pd.value === 'reserve' ? 'Reserve' : (pd.value === 'yes' ? 'Selected' : 'Rejected');
+  fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[pd.round] || pd.round), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: pd.round, decision: pd.value })
+  }).catch(function() {});
+  var drawerBtn = document.querySelector('#decision-container [data-dr="' + pd.round + '"][data-dv="' + pd.value + '"]');
+  if (drawerBtn) window.selectDecision(drawerBtn, pd.round, pd.value);
+  var card = document.querySelector('.cand-card[data-idx="' + pd.idx + '"]');
+  if (card) {
+    if (pd.value === 'no') {
+      card.classList.add('cand-card-rejected');
+      var decisions = card.querySelectorAll('.card-decision');
+      decisions.forEach(function(d) { d.innerHTML = '<span style="font-size:10px;font-weight:600;color:var(--red);">Rejected</span>'; });
+    } else if (pd.value === 'reserve') {
+      var section = card.querySelector('.card-decision');
+      if (section) {
+        section.innerHTML =
+          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Reserved</span>' +
+          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(245,158,11,0.15);color:var(--amber);"><i class="ti ti-clock"></i> Reserved</span>';
+      }
+    } else {
+      var section = card.querySelector('.card-decision');
+      if (section) {
+        section.innerHTML =
+          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + (pd.value === 'Hire' ? 'Hired' : 'Accepted') + '</span>' +
+          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> ' + (pd.value === 'Hire' ? 'Hired' : 'Accepted') + '</span>';
+      }
+    }
+  }
+};
+
+window.confirmDrawerHire = function(btn, round) {
+  var container = document.getElementById('decision-container');
+  var name = container ? container.dataset.name || '' : '';
+  var cands = window._candidateData || [];
+  var c = cands.find(function(cand) { return cand.Name === name || cand.Email === (container ? container.dataset.email : ''); });
+  var role = c ? c.Role || '' : '';
+  window._pendingDecision = { isDrawer: true, btn: btn, round: round, value: 'Hire' };
+  var initials = getInitials(name);
+  var avColor = avatarColor(name);
+  var iconEl = document.getElementById('decision-confirm-icon');
+  iconEl.style.background = avColor;
+  iconEl.style.color = '#fff';
+  iconEl.textContent = initials;
+  document.getElementById('decision-confirm-title').textContent = 'Hire ' + name + '?';
+  document.getElementById('decision-confirm-desc').textContent = 'This candidate will be selected for the role of ' + (role || 'this position') + ' and cannot be reversed.';
+  var confirmBtn = document.getElementById('decision-confirm-btn');
+  confirmBtn.className = 'btn-danger';
+  confirmBtn.innerHTML = '<i class="ti ti-circle-check"></i> Yes, Hire';
+  document.getElementById('decision-confirm-overlay').classList.add('open');
+  document.getElementById('decision-confirm-modal').classList.add('open');
+};
+
 window.cardDecision = function(idx, round, value, btn) {
   var cands = window._candidateData || [];
   var c = cands[idx];
   if (!c) return;
-  var fieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
-  var actionMap = { resume: 'Resume Screening', round1: 'Round 1', round2: 'Round 2', round3: 'Round 3' };
-  c[fieldMap[round]] = value === 'Hire' ? 'Hired' : (value === 'yes' ? 'Selected' : 'Rejected');
-  fetch('/n8n-proxy/webhook/a3684149-e051-40f6-8a20-af1c451a618b?action=' + encodeURIComponent(actionMap[round] || round), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: c.Name || '', email: c.Email || '', campaignName: window._campaignDetailName || '', source: 'card', round: round, decision: value })
-  }).catch(function() {});
-  filterCandidates();
-  var drawerBtn = document.querySelector('#decision-container [data-dr="' + round + '"][data-dv="' + value + '"]');
-  if (drawerBtn) window.selectDecision(drawerBtn, round, value);
-  var card = btn && btn.closest('.cand-card');
-  if (card) {
-    if (value === 'no') {
-      card.classList.add('cand-card-rejected');
-      var decisions = card.querySelectorAll('.card-decision');
-      decisions.forEach(function(d) { d.innerHTML = '<span style="font-size:10px;font-weight:600;color:var(--red);">Rejected</span>'; });
-    } else {
-      var section = btn.closest('.card-decision');
-      if (section) {
-        section.innerHTML =
-          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>' +
-          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--emerald);"><i class="ti ti-circle-check"></i> ' + (value === 'Hire' ? 'Hired' : 'Accepted') + '</span>';
-      }
-    }
-  }
+  var label = value === 'Hire' ? 'Hire' : value === 'reserve' ? 'Reserve' : value === 'yes' ? 'Yes' : 'No';
+  window.showDecisionConfirm(c.Name, label, round, value, idx, c.Role || '');
 };
 
 window.meetingDecision = function(idx, round, value, btn) {
@@ -2791,6 +2969,13 @@ window.filterCandidates = function() {
   var sort = document.getElementById('candidate-sort').value;
   if (sort === 'name') filtered.sort(function(a, b) { return (a.Name || '').localeCompare(b.Name || ''); });
   else if (sort === 'score') filtered.sort(function(a, b) { return (parseInt(b.Score) || 0) - (parseInt(a.Score) || 0); });
+
+  filtered.sort(function(a, b) {
+    var isRejected = function(c) { return ['Resume Decision', 'Round 1 Decision', 'Round 2 Decision', 'Round 3 Decision', 'Call Decision'].some(function(f) { var v = (c[f] || '').toLowerCase(); return v === 'rejected' || v === 'no'; }); };
+    var ra = isRejected(a) ? 1 : 0;
+    var rb = isRejected(b) ? 1 : 0;
+    return ra - rb;
+  });
 
   renderCandidates(filtered);
   updatePagination(filtered.length);
@@ -2921,7 +3106,7 @@ function renderDrawerContent(c) {
     steps.push({ key: 'round' + (ri + 1), label: roundNames[ri], num: ri + 1 });
   }
 
-  var _isRoundDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no'; };
+  var _isRoundDecided = function(v) { var s = String(v || '').toLowerCase(); return s === 'selected' || s === 'rejected' || s === 'offered' || s === 'yes' || s === 'no' || s === 'reserve'; };
   var latestRound = 0;
   for (var ri = 1; ri <= roundNames.length; ri++) {
     if (_isRoundDecided(c['Round ' + ri + ' Decision'])) {
@@ -3120,16 +3305,17 @@ function renderDrawerContent(c) {
           '<div style="padding:10px 14px;background:var(--surface3);font-size:11px;color:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.05em;"><i class="ti ti-clipboard-text"></i> ' + dr.label + '</div>' +
           '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">' +
             '<div style="display:flex;gap:8px;">' +
-              '<button type="button" data-dr="' + dr.key + '" data-dv="' + (isLastRound ? 'Hire' : 'yes') + '" onclick="window.selectDecision(this,\'' + dr.key + '\',\'' + (isLastRound ? 'Hire' : 'yes') + '\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
+              '<button type="button" data-dr="' + dr.key + '" data-dv="' + (isLastRound ? 'Hire' : 'yes') + '" onclick="' + (isLastRound ? 'window.confirmDrawerHire(this,\'' + dr.key + '\')' : 'window.selectDecision(this,\'' + dr.key + '\',\'yes\')') + '" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
+              (isLastRound ? '<button type="button" data-dr="' + dr.key + '" data-dv="reserve" onclick="window.selectDecision(this,\'' + dr.key + '\',\'reserve\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock"></i> Reserve</button>' : '') +
               '<button type="button" data-dr="' + dr.key + '" data-dv="no" onclick="window.selectDecision(this,\'' + dr.key + '\',\'no\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-x"></i> No</button>' +
             '</div>' +
-            '<textarea id="dc-' + dr.key + '" placeholder="Add comments for ' + dr.label + '..." style="width:100%;min-height:50px;padding:8px 10px;background:var(--surface1);border:1px solid var(--border-color);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;">' + (function(){ var f = dr.key === 'round1' ? 'Round 1 Comments' : dr.key === 'round2' ? 'Round 2 Comments' : dr.key === 'round3' ? 'Round 3 Comments' : ''; return (f && c[f]) ? c[f].replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; })() + '</textarea>' +
+            '<textarea id="dc-' + dr.key + '" placeholder="Add comments for ' + dr.label + '..." oninput="window.updateSubmitButtonText()" style="width:100%;min-height:50px;padding:8px 10px;background:var(--surface1);border:1px solid var(--border-color);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;">' + (function(){ var f = dr.key === 'round1' ? 'Round 1 Comments' : dr.key === 'round2' ? 'Round 2 Comments' : dr.key === 'round3' ? 'Round 3 Comments' : ''; return (f && c[f]) ? c[f].replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; })() + '</textarea>' +
           '</div>' +
         '</div>';
     }
   }
   decisionHtml +=
-    '<button id="decision-submit-btn" onclick="window.submitDecisions()" style="width:100%;padding:10px 16px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-send"></i> Submit Decisions</button>' +
+    '<button id="decision-submit-btn" onclick="window.submitDecisions()" style="width:100%;padding:10px 16px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-send"></i> <span id="decision-btn-text">Submit Decisions</span></button>' +
     '<div id="decision-feedback"></div>' +
   '</div>';
 
@@ -3165,18 +3351,26 @@ function renderDrawerContent(c) {
 
   var initRounds = ['resume', 'round1', 'round2', 'round3'];
   var initFieldMap = { resume: 'Resume Decision', round1: 'Round 1 Decision', round2: 'Round 2 Decision', round3: 'Round 3 Decision' };
-  var initValMap = { selected: 'yes', offered: 'yes', rejected: 'no', yes: 'yes', no: 'no', Hired: 'Hire', hired: 'Hire', Hire: 'Hire', hire: 'Hire' };
+  var initValMap = { selected: 'yes', offered: 'yes', rejected: 'no', yes: 'yes', no: 'no', reserve: 'reserve', Reserve: 'reserve', Hired: 'Hire', hired: 'Hire', Hire: 'Hire', hire: 'Hire' };
   initRounds.forEach(function(r) {
     var val = (c[initFieldMap[r]] || '').toLowerCase();
     var dv = initValMap[val];
     if (dv) {
       var btn = document.querySelector('#decision-container [data-dr="' + r + '"][data-dv="' + dv + '"]');
       if (btn) {
-        var isPos = dv === 'yes' || dv === 'Hire';
-        btn.style.background = isPos ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
-        btn.style.color = isPos ? 'var(--emerald)' : 'var(--red)';
-        btn.style.borderColor = isPos ? 'var(--emerald)' : 'var(--red)';
-        btn.style.boxShadow = '0 0 0 2px ' + (isPos ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+        if (dv === 'reserve') {
+          btn.style.background = 'rgba(245,158,11,0.15)';
+          btn.style.color = 'var(--amber)';
+          btn.style.borderColor = 'var(--amber)';
+          btn.style.boxShadow = '0 0 0 2px rgba(245,158,11,0.3)';
+        } else {
+          var isPos = dv === 'yes' || dv === 'Hire';
+          btn.style.background = isPos ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+          btn.style.color = isPos ? 'var(--emerald)' : 'var(--red)';
+          btn.style.borderColor = isPos ? 'var(--emerald)' : 'var(--red)';
+          btn.style.boxShadow = '0 0 0 2px ' + (isPos ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+        }
+        btn.classList.add('dr-selected');
       }
     }
   });
@@ -3291,11 +3485,39 @@ window.selectDecision = function(btn, round, value) {
     b.classList.remove('dr-selected');
   });
   btn.classList.add('dr-selected');
-  var isPositive = value === 'yes' || value === 'Hire';
-  btn.style.background = isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
-  btn.style.color = isPositive ? 'var(--emerald)' : 'var(--red)';
-  btn.style.borderColor = isPositive ? 'var(--emerald)' : 'var(--red)';
-  btn.style.boxShadow = '0 0 0 2px ' + (isPositive ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+  if (value === 'reserve') {
+    btn.style.background = 'rgba(245,158,11,0.15)';
+    btn.style.color = 'var(--amber)';
+    btn.style.borderColor = 'var(--amber)';
+    btn.style.boxShadow = '0 0 0 2px rgba(245,158,11,0.3)';
+  } else {
+    var isPositive = value === 'yes' || value === 'Hire';
+    btn.style.background = isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+    btn.style.color = isPositive ? 'var(--emerald)' : 'var(--red)';
+    btn.style.borderColor = isPositive ? 'var(--emerald)' : 'var(--red)';
+    btn.style.boxShadow = '0 0 0 2px ' + (isPositive ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+  }
+  window._userClickedDecision = true;
+  window.updateSubmitButtonText();
+};
+
+/* ─── Update Submit Button Text ─── */
+
+window.updateSubmitButtonText = function() {
+  var btnText = document.getElementById('decision-btn-text');
+  if (!btnText) return;
+  var rounds = ['round1', 'round2', 'round3'];
+  var hasComment = rounds.some(function(r) {
+    var el = document.getElementById('dc-' + r);
+    return el && el.value.trim();
+  });
+  if (window._userClickedDecision) {
+    btnText.textContent = 'Save Decision';
+  } else if (hasComment) {
+    btnText.textContent = 'Add Comment';
+  } else {
+    btnText.textContent = 'Submit Decisions';
+  }
 };
 
 /* ─── Submit Decisions ─── */
@@ -3319,24 +3541,45 @@ window.submitDecisions = function() {
   }
   rounds.forEach(function(round) {
     var selectedBtn = document.querySelector('#decision-container [data-dr="' + round + '"].dr-selected');
-    if (!selectedBtn) return;
-    var dv = selectedBtn.getAttribute('data-dv') || '';
-    var roundData = {
-      name: name,
-      email: email,
-      campaignName: campaignName,
-      round: round,
-      decision: dv
-    };
-    if (candIdx !== -1) {
-      cands[candIdx][fieldMap[round]] = dv === 'Hire' ? 'Hired' : (dv === 'yes' ? 'Selected' : 'Rejected');
+    if (selectedBtn) {
+      var dv = selectedBtn.getAttribute('data-dv') || '';
+      var roundData = {
+        name: name,
+        email: email,
+        campaignName: campaignName,
+        round: round,
+        decision: dv
+      };
+      if (candIdx !== -1) {
+        cands[candIdx][fieldMap[round]] = dv === 'Hire' ? 'Hired' : dv === 'reserve' ? 'Reserve' : (dv === 'yes' ? 'Selected' : 'Rejected');
+      }
+      var commentsEl = document.getElementById('dc-' + round);
+      if (commentsEl && commentsEl.value.trim()) {
+        roundData.comments = commentsEl.value;
+      }
+      toSubmit.push({ action: actionMap[round] || round, data: roundData });
     }
-    var commentsEl = document.getElementById('dc-' + round);
-    if (commentsEl && commentsEl.value.trim()) {
-      roundData.comments = commentsEl.value;
-    }
-    toSubmit.push({ action: actionMap[round] || round, data: roundData });
+
   });
+
+  if (!window._userClickedDecision) {
+    rounds.forEach(function(round) {
+      var commentsEl = document.getElementById('dc-' + round);
+      var comment = commentsEl ? commentsEl.value.trim() : '';
+      if (!comment) return;
+      var commentsField = round === 'round1' ? 'Round 1 Comments' : round === 'round2' ? 'Round 2 Comments' : round === 'round3' ? 'Round 3 Comments' : '';
+      if (commentsField && candIdx !== -1) {
+        cands[candIdx][commentsField] = comment;
+      }
+      toSubmit.push({
+        action: 'OnlyComment',
+        data: {
+          name: name, email: email, campaignName: campaignName, round: round,
+          userEmail: window._userEmail || '', userRole: window._userRole || '', comments: comment
+        }
+      });
+    });
+  }
 
   if (!toSubmit.length) return;
 
@@ -3358,7 +3601,7 @@ window.submitDecisions = function() {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       completed++;
       if (completed === total && !hasError) {
-        if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(16,185,129,0.1);color:var(--emerald);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-check"></i> Decisions submitted successfully!</div>'; }
+        if (feedback) { feedback.innerHTML = '<div style="padding:10px 14px;background:rgba(16,185,129,0.1);color:var(--emerald);border-radius:8px;font-size:13px;font-weight:600;margin-top:4px;"><i class="ti ti-check"></i> ' + (window._userClickedDecision ? 'Decision saved' : 'Comment added') + ' successfully!</div>'; }
         if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Submitted'; btn.style.background = 'var(--emerald)'; }
         filterCandidates();
       }

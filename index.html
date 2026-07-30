@@ -1762,7 +1762,7 @@
     <div class="detail-drop-zone" id="drop-zone">
       <div class="detail-drop-icon"><i class="ti ti-cloud-upload"></i></div>
       <div class="detail-drop-text">Drag &amp; Drop files here</div>
-      <div class="detail-drop-hint" id="drop-hint">Supports PDF and image files (PNG, JPG, GIF, WEBP)</div>
+      <div class="detail-drop-hint" id="drop-hint">Supports PDF, Word (DOCX — auto-converted to PDF), and image files (PNG, JPG, GIF, WEBP)</div>
       <div class="detail-drop-actions">
         <button class="btn-primary" id="upload-files-btn" type="button"><i class="ti ti-file"></i> Upload Files</button>
         <button class="btn-secondary" id="upload-folder-btn" type="button" style="margin-left:8px;"><i class="ti ti-folder"></i> Upload Folder</button>
@@ -1845,6 +1845,18 @@
   <div id="reschedule-root"></div>
 </div>
 
+<!-- Decision Confirmation Modal -->
+<div class="drawer-overlay" id="decision-confirm-overlay" onclick="closeDecisionConfirm()"></div>
+<div class="decision-modal" id="decision-confirm-modal">
+  <div class="decision-modal-icon" id="decision-confirm-icon"><i class="ti ti-judge"></i></div>
+  <div class="decision-modal-title" id="decision-confirm-title">Confirm decision?</div>
+  <div class="decision-modal-desc" id="decision-confirm-desc">Are you sure?</div>
+  <div class="decision-modal-actions">
+    <button class="btn-ghost" onclick="closeDecisionConfirm()">Cancel</button>
+    <button class="btn-primary" id="decision-confirm-btn" onclick="confirmDecision()">Confirm</button>
+  </div>
+</div>
+
 <!-- Delete Campaign Confirmation Modal -->
 <div class="drawer-overlay" id="delete-overlay" onclick="closeDeleteModal()"></div>
 <div class="delete-modal" id="delete-modal">
@@ -1857,9 +1869,12 @@
   </div>
 </div>
 
-<script type="module" src="/src/react-main.tsx"></script>
-<script type="module" src="/src/main.js"></script>
-<script type="module" src="/src/search-integration.tsx"></script>
-<script type="module" src="/src/reschedule-integration.tsx"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module" src="/src/react-main.tsx"></script>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/search-integration.tsx"></script>
+  <script type="module" src="/src/reschedule-integration.tsx"></script>
 </body>
 </html>

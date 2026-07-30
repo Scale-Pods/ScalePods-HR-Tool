@@ -1787,6 +1787,62 @@ body[data-theme="dark"] .mf-btn.mf-active { background: #4B5563; }
   cursor: not-allowed;
 }
 
+/* ─── Decision Confirmation Modal ─── */
+.decision-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1001;
+  width: 380px;
+  max-width: 90vw;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.decision-modal.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+.decision-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--blue-glass);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 16px;
+}
+.decision-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+.decision-modal-desc {
+  font-size: 13px;
+  color: var(--text3);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+.decision-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
 /* ─── Calendar Adjustments (V10) ─── */
 .reschedule-modal .rdp-root {
   --rdp-accent-color: #2563eb;
