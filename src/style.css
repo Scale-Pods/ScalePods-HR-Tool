@@ -1494,6 +1494,37 @@ select.create-input {
   transform: translateY(0);
 }
 
+/* ─── Toast ─── */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 300;
+  display: flex; flex-direction: column; gap: 10px; max-width: 360px;
+}
+.app-toast {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface-solid); border: 1px solid var(--border-color);
+  border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  font-size: 13px; font-weight: 500; color: var(--text);
+  animation: toastIn .35s cubic-bezier(.22,1,.36,1);
+}
+.app-toast i { color: var(--emerald); font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+.app-toast-info { border-left: 3px solid var(--blue); }
+.app-toast-info i { color: var(--blue); }
+.app-toast-close {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--text3); font-size: 14px; margin-left: auto; flex-shrink: 0;
+  transition: color .2s;
+}
+.app-toast-close:hover { color: var(--text); }
+.app-toast-hide { animation: toastOut .3s ease forwards; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(12px) scale(0.96); }
+}
+
 /* ─── Toggle ─── */
 .toggle { width: 46px; height: 26px; background: #d1d5db; border-radius: 13px; cursor: pointer; position: relative; transition: background .35s ease; flex-shrink: 0; }
 .toggle::after { content: ''; width: 22px; height: 22px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform .35s cubic-bezier(.22,1,.36,1); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }

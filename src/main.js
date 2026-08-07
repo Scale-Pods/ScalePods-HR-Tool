@@ -1990,6 +1990,14 @@ function updateDashboardMetrics(candidates, campaign) {
 
 window._dashboardCampaignName = null;
 
+function isCampaignActive(c) {
+  if (!c) return false;
+  if (c.Status) {
+    return c.Status === 'on' || c.Status === 'active' || c.Status === 'Active' || c.Status === 'true';
+  }
+  return c.IsActive === 'active' || c.IsActive === 'Active';
+}
+
 window.loadCampaigns = function() {
   const grid = document.querySelector('.campaigns-grid');
   if (!grid) return;
@@ -2006,6 +2014,9 @@ window.loadCampaigns = function() {
         if (Array.isArray(data)) list = data[0] && Array.isArray(data[0].data) ? data[0].data : data;
         else if (data && Array.isArray(data.data)) list = data.data;
         else list = [];
+        list = list.slice().sort(function(a, b) {
+          return (isCampaignActive(b) ? 1 : 0) - (isCampaignActive(a) ? 1 : 0);
+        });
         if (!list.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="ti ti-briefcase"></i><div class="empty-state-title">No Campaigns Yet</div><div class="empty-state-desc">Create your first hiring campaign to get started</div></div>'; document.getElementById('campaign-badge').textContent = '0'; return; }
         grid.innerHTML = '';
         document.getElementById('campaign-badge').textContent = list.length;
@@ -2032,7 +2043,7 @@ window.loadCampaigns = function() {
           }
         }
         list.forEach(c => {
-          const active = c.IsActive === 'active' || c.IsActive === 'Active';
+          const active = isCampaignActive(c);
           const card = document.createElement('div');
           card.className = 'campaign-card';
           card.dataset.campaignName = c.CampaignName || '';
@@ -2065,6 +2076,23 @@ window.loadCampaigns = function() {
   tryFetch(0);
 };
 
+window.showToast = function(message, type) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'app-toast' + (type === 'info' ? ' app-toast-info' : '');
+  toast.innerHTML = '<i class="ti ti-' + (type === 'info' ? 'info-circle' : 'check-circle') + '"></i>' +
+    '<span>' + message + '</span>' +
+    '<button class="app-toast-close" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>';
+  container.appendChild(toast);
+  setTimeout(function() { toast.classList.add('app-toast-hide'); }, 4200);
+  setTimeout(function() { toast.remove(); }, 4600);
+};
+
 window.toggleCampaignStatus = function(name, toggleEl) {
   if (!name || !toggleEl) return;
   const turningOn = !toggleEl.classList.contains('on');
@@ -2093,6 +2121,17 @@ window.toggleCampaignStatus = function(name, toggleEl) {
       if (topbar) topbar.style.background = turningOn ? 'linear-gradient(90deg,var(--emerald),var(--emerald-light))' : 'linear-gradient(90deg,var(--blue),var(--cyan))';
       const wrap = card.querySelector('.campaign-toggle-wrap');
       if (wrap) wrap.title = turningOn ? 'Turn off campaign' : 'Turn on campaign';
+      if (!turningOn) {
+        const grid = card.parentElement;
+        if (grid && grid.classList.contains('campaigns-grid')) {
+          grid.appendChild(card);
+        }
+      }
+    }
+    if (turningOn) {
+      showToast('Campaign "' + name + '" turned on.');
+    } else {
+      showToast('Campaign "' + name + '" turned off. No activity in this campaign will be registered.', 'info');
     }
     setTimeout(loadCampaigns, 1000);
   })
