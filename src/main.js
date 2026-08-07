@@ -393,6 +393,8 @@ window.toggleTheme = function() {
   var icon = isDark ? 'moon' : 'sun';
   var tb = document.getElementById('theme-btn');
   if (tb) tb.innerHTML = '<i class="ti ti-' + icon + '"></i>';
+  var lpb = document.getElementById('lp-theme-btn');
+  if (lpb) lpb.innerHTML = '<i class="ti ti-' + icon + '"></i>';
   var sb = document.getElementById('sidebar-theme-icon');
   if (sb) sb.className = 'ti ti-' + icon;
 };
@@ -596,7 +598,7 @@ function updateDayDetail(day) {
       if (candIdx >= 0) {
         decisionSectionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
         if (isDecided) {
-          var dLabel = curDecision.toLowerCase() === 'reserve' ? 'Reserved' : (curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'Rejected' : (curDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
+          var dLabel = curDecision.toLowerCase() === 'reserve' ? 'Selected' : (curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'Rejected' : (curDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
           var dColor = curDecision.toLowerCase() === 'reserve' ? 'var(--amber)' : (curDecision.toLowerCase() === 'rejected' || curDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)');
           decisionSectionHtml += '<div style="font-size:10px;font-weight:600;color:' + dColor + ';padding:2px 0;">' + dLabel + '</div>';
         } else {
@@ -1482,7 +1484,7 @@ function renderLiveDailyTrack(filter) {
     if (mtCandIdx >= 0) {
       mtDecisionHtml = '<div class="meeting-decision" style="display:none;padding-top:6px;margin-top:6px;border-top:1px solid var(--separator);">';
       if (mtIsDecided) {
-        var mtLabel = mtCurDecision.toLowerCase() === 'reserve' ? 'Reserved' : (mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'Rejected' : (mtCurDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
+        var mtLabel = mtCurDecision.toLowerCase() === 'reserve' ? 'Selected' : (mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'Rejected' : (mtCurDecision.toLowerCase() === 'hired' ? 'Hired' : 'Selected'));
         var mtColor = mtCurDecision.toLowerCase() === 'reserve' ? 'var(--amber)' : (mtCurDecision.toLowerCase() === 'rejected' || mtCurDecision.toLowerCase() === 'no' ? 'var(--red)' : 'var(--emerald)');
         mtDecisionHtml += '<div style="font-size:10px;font-weight:600;color:' + mtColor + ';padding:2px 0;">' + mtLabel + '</div>';
       } else {
@@ -2036,7 +2038,12 @@ window.loadCampaigns = function() {
           card.dataset.campaignName = c.CampaignName || '';
           card.innerHTML = '<div class="campaign-topbar" style="background:linear-gradient(90deg,' + (active ? 'var(--emerald),var(--emerald-light)' : 'var(--blue),var(--cyan)') + ');"></div>' +
             '<div class="campaign-body">' +
-            '<div class="campaign-status"><span class="status-pill"><span class="status-dot" style="background:' + (active ? 'var(--emerald)' : 'var(--blue)') + ';"></span> ' + (active ? 'Active' : 'Paused') + '</span></div>' +
+            '<div class="campaign-status" style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span class="status-pill"><span class="status-dot" style="background:' + (active ? 'var(--emerald)' : 'var(--blue)') + ';"></span> ' + (active ? 'Active' : 'Paused') + '</span>' +
+            '<div class="campaign-toggle-wrap" title="' + (active ? 'Turn off campaign' : 'Turn on campaign') + '">' +
+            '<div class="toggle' + (active ? ' on' : '') + '" onclick="event.stopPropagation();toggleCampaignStatus(this.closest(\'.campaign-card\').dataset.campaignName, this)"></div>' +
+            '</div>' +
+            '</div>' +
             '<div class="campaign-name">' + (c.CampaignName || 'Untitled') + '</div>' +
             '<div class="campaign-meta">' +
             '<span><i class="ti ti-calendar"></i> ' + (c.CampaignStartDate ? c.CampaignStartDate + (c.CampaignEndDate ? ' – ' + c.CampaignEndDate : '') : 'N/A') + '</span>' +
@@ -2056,6 +2063,44 @@ window.loadCampaigns = function() {
       .catch(() => { tryFetch(i + 1); });
   }
   tryFetch(0);
+};
+
+window.toggleCampaignStatus = function(name, toggleEl) {
+  if (!name || !toggleEl) return;
+  const turningOn = !toggleEl.classList.contains('on');
+  const value = turningOn ? 'on' : 'off';
+
+  toggleEl.classList.add('busy');
+  toggleEl.style.pointerEvents = 'none';
+
+  fetch('/n8n-proxy/webhook/6536d25e-6332-4681-8bd9-0cd219e30a53?action=Status&value=' + value, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    toggleEl.classList.toggle('on', turningOn);
+    const card = toggleEl.closest('.campaign-card');
+    if (card) {
+      const pill = card.querySelector('.status-pill');
+      if (pill) {
+        const dot = pill.querySelector('.status-dot');
+        if (dot) dot.style.background = turningOn ? 'var(--emerald)' : 'var(--blue)';
+        pill.childNodes.forEach(n => { if (n.nodeType === 3) n.textContent = turningOn ? 'Active' : 'Paused'; });
+      }
+      const topbar = card.querySelector('.campaign-topbar');
+      if (topbar) topbar.style.background = turningOn ? 'linear-gradient(90deg,var(--emerald),var(--emerald-light))' : 'linear-gradient(90deg,var(--blue),var(--cyan))';
+      const wrap = card.querySelector('.campaign-toggle-wrap');
+      if (wrap) wrap.title = turningOn ? 'Turn off campaign' : 'Turn on campaign';
+    }
+    setTimeout(loadCampaigns, 1000);
+  })
+  .catch(err => alert('Failed to update campaign status: ' + err.message))
+  .finally(() => {
+    toggleEl.classList.remove('busy');
+    toggleEl.style.pointerEvents = '';
+  });
 };
 
 window._campaignDetailData = null;
@@ -2604,7 +2649,7 @@ function getRoundBadge(decision, assigned) {
   if (dec === 'selected' || dec === 'offered' || dec === 'yes' || dec === 'hired') { cls = 'detail-badge-selected'; }
   else if (dec === 'passed' || dec === 'completed') { cls = 'detail-badge-passed'; }
   else if (dec === 'rejected' || dec === 'no') { cls = 'detail-badge-rejected'; }
-  else if (dec === 'reserve') { cls = 'detail-badge-pending'; label = 'Reserved'; }
+  else if (dec === 'reserve') { cls = 'detail-badge-pending'; label = 'Selected'; }
   else { cls = 'detail-badge-pending'; }
   var dots = { 'detail-badge-passed': 'var(--emerald)', 'detail-badge-pending': 'var(--amber)', 'detail-badge-rejected': 'var(--red)', 'detail-badge-selected': 'var(--blue)' };
   return '<span class="' + cls + '"><span class="status-dot" style="background:' + (dots[cls] || 'var(--text3)') + ';"></span> ' + label + '</span>';
@@ -2758,7 +2803,7 @@ function renderCandidates(list) {
         else if (!skipR3 && roundList.length >= 3) { nextKey = 'round3'; nextLabel = 'Round 3'; }
         if (!nextKey) return '';
         var isLastRound = nextKey.indexOf('round') === 0 && nextKey === 'round' + roundList.length;
-        var reserveBtn = isLastRound ? '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'reserve\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock" style="font-size:10px;"></i> Reserve</button>' : '';
+        var reserveBtn = isLastRound ? '<button onclick="event.stopPropagation();window.cardDecision(' + origIdx + ',\'' + nextKey + '\',\'reserve\',this)" style="padding:3px 12px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock" style="font-size:10px;"></i> Selected</button>' : '';
         return '<div class="card-decision" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;border-top:1px solid var(--separator);margin-top:6px;">' +
           '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">' + nextLabel + '?</span>' +
           '<div style="display:flex;gap:4px;margin-left:auto;">' +
@@ -2835,8 +2880,8 @@ window.confirmDecision = function() {
       var section = card.querySelector('.card-decision');
       if (section) {
         section.innerHTML =
-          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Reserved</span>' +
-          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(245,158,11,0.15);color:var(--amber);"><i class="ti ti-clock"></i> Reserved</span>';
+          '<span style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;">Selected</span>' +
+          '<span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 12px;border-radius:6px;background:rgba(245,158,11,0.15);color:var(--amber);"><i class="ti ti-clock"></i> Selected</span>';
       }
     } else {
       var section = card.querySelector('.card-decision');
@@ -2875,7 +2920,7 @@ window.cardDecision = function(idx, round, value, btn) {
   var cands = window._candidateData || [];
   var c = cands[idx];
   if (!c) return;
-  var label = value === 'Hire' ? 'Hire' : value === 'reserve' ? 'Reserve' : value === 'yes' ? 'Yes' : 'No';
+  var label = value === 'Hire' ? 'Hire' : value === 'reserve' ? 'Selected' : value === 'yes' ? 'Yes' : 'No';
   window.showDecisionConfirm(c.Name, label, round, value, idx, c.Role || '');
 };
 
@@ -3306,7 +3351,7 @@ function renderDrawerContent(c) {
           '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">' +
             '<div style="display:flex;gap:8px;">' +
               '<button type="button" data-dr="' + dr.key + '" data-dv="' + (isLastRound ? 'Hire' : 'yes') + '" onclick="' + (isLastRound ? 'window.confirmDrawerHire(this,\'' + dr.key + '\')' : 'window.selectDecision(this,\'' + dr.key + '\',\'yes\')') + '" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-check"></i> ' + (isLastRound ? 'Hire' : 'Yes') + '</button>' +
-              (isLastRound ? '<button type="button" data-dr="' + dr.key + '" data-dv="reserve" onclick="window.selectDecision(this,\'' + dr.key + '\',\'reserve\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock"></i> Reserve</button>' : '') +
+              (isLastRound ? '<button type="button" data-dr="' + dr.key + '" data-dv="reserve" onclick="window.selectDecision(this,\'' + dr.key + '\',\'reserve\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-clock"></i> Selected</button>' : '') +
               '<button type="button" data-dr="' + dr.key + '" data-dv="no" onclick="window.selectDecision(this,\'' + dr.key + '\',\'no\')" style="flex:1;padding:7px 14px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"><i class="ti ti-circle-x"></i> No</button>' +
             '</div>' +
             '<textarea id="dc-' + dr.key + '" placeholder="Add comments for ' + dr.label + '..." oninput="window.updateSubmitButtonText()" style="width:100%;min-height:50px;padding:8px 10px;background:var(--surface1);border:1px solid var(--border-color);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;">' + (function(){ var f = dr.key === 'round1' ? 'Round 1 Comments' : dr.key === 'round2' ? 'Round 2 Comments' : dr.key === 'round3' ? 'Round 3 Comments' : ''; return (f && c[f]) ? c[f].replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; })() + '</textarea>' +

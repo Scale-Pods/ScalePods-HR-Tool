@@ -32,6 +32,9 @@
         <a href="#contact" class="lp-nav-link">Contact</a>
       </div>
       <div class="lp-nav-actions">
+        <button class="lp-theme-toggle" id="lp-theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+          <i class="ti ti-moon"></i>
+        </button>
         <button class="lp-btn-cta" id="lp-signin-btn">Sign In <i class="ti ti-arrow-right"></i></button>
       </div>
       <button class="lp-mobile-menu-btn" id="lp-mobile-toggle" onclick="document.querySelector('.lp-nav-links').classList.toggle('open'); document.querySelector('.lp-nav-actions').classList.toggle('open');">
@@ -240,52 +243,16 @@
     </div>
   </section>
 
-  <!-- ─── Pricing Section ─── -->
+  <!-- ─── Pricing / Let's Talk Section ─── -->
   <section class="lp-section lp-section-alt" id="pricing">
-    <div class="lp-section-badge"><i class="ti ti-diamond"></i> PRICING</div>
-    <h2 class="lp-section-title">Simple, Transparent Pricing</h2>
-    <p class="lp-section-desc">Start free. Scale when you're ready.</p>
-    <div class="lp-pricing-grid">
-      <div class="lp-pricing-card">
-        <div class="lp-price-tier">Starter</div>
-        <div class="lp-price-amount">Free</div>
-        <div class="lp-price-period">forever</div>
-        <ul class="lp-price-features">
-          <li><i class="ti ti-check"></i> Up to 3 campaigns</li>
-          <li><i class="ti ti-check"></i> 50 candidates/month</li>
-          <li><i class="ti ti-check"></i> AI resume screening</li>
-          <li><i class="ti ti-check"></i> Basic analytics</li>
-        </ul>
-        <button class="lp-btn-outline lp-btn-full" onclick="document.getElementById('lp-signin-btn').click()">Get Started</button>
-      </div>
-      <div class="lp-pricing-card lp-pricing-featured">
-        <div class="lp-price-popular">MOST POPULAR</div>
-        <div class="lp-price-tier">Pro</div>
-        <div class="lp-price-amount">$49</div>
-        <div class="lp-price-period">per month</div>
-        <ul class="lp-price-features">
-          <li><i class="ti ti-check"></i> Unlimited campaigns</li>
-          <li><i class="ti ti-check"></i> Unlimited candidates</li>
-          <li><i class="ti ti-check"></i> Call intelligence</li>
-          <li><i class="ti ti-check"></i> Advanced analytics</li>
-          <li><i class="ti ti-check"></i> Offer letter generator</li>
-          <li><i class="ti ti-check"></i> Priority support</li>
-        </ul>
-        <button class="lp-btn-primary lp-btn-full" onclick="document.getElementById('lp-signin-btn').click()">Start Free Trial</button>
-      </div>
-      <div class="lp-pricing-card">
-        <div class="lp-price-tier">Enterprise</div>
-        <div class="lp-price-amount">Custom</div>
-        <div class="lp-price-period">contact us</div>
-        <ul class="lp-price-features">
-          <li><i class="ti ti-check"></i> Everything in Pro</li>
-          <li><i class="ti ti-check"></i> SSO & SAML</li>
-          <li><i class="ti ti-check"></i> Custom integrations</li>
-          <li><i class="ti ti-check"></i> Dedicated success manager</li>
-          <li><i class="ti ti-check"></i> SLA guarantees</li>
-        </ul>
-        <button class="lp-btn-outline lp-btn-full">Contact Sales</button>
-      </div>
+    <div class="lp-section-badge"><i class="ti ti-messages"></i> LET'S TALK</div>
+    <h2 class="lp-section-title">Let's Find the Right Plan for You</h2>
+    <p class="lp-section-desc">Every hiring team works differently. Tell us what you're looking to automate, and we'll help you find the right setup for your team.</p>
+    <div class="lp-talk-box">
+      <p class="lp-talk-sub">Whether you're running a few hiring campaigns or managing recruitment at scale, we can tailor the platform around your workflow.</p>
+      <button class="lp-btn-primary lp-btn-lg" onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=raunak@scalepods.co&cc=adnan@scalepods.co&su=ScalePods%20Plan%20Discussion&body=Hi%2C%0A%0AI%E2%80%99m%20interested%20in%20learning%20more%20about%20your%20platform%20and%20would%20like%20to%20discuss%20how%20it%20could%20work%20for%20our%20hiring%20needs.%0A%0APlease%20get%20in%20touch%20so%20we%20can%20explore%20the%20options%20and%20next%20steps.%0A%0AThanks!','_blank')">
+        Let's Discuss <i class="ti ti-arrow-right"></i>
+      </button>
     </div>
   </section>
 
