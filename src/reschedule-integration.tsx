@@ -66,3 +66,4 @@ window.closeRescheduleModal = () => {
     }, 400);
   }
 };
+
