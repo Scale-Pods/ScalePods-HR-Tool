@@ -2211,6 +2211,7 @@ window.loadCampaignDetail = function() {
   if (!window._uploadWired) {
     window._uploadWired = true;
     window._pendingFiles = [];
+    window._pendingTags = [];
 
     function makeFeedback(btn) {
       var el = document.createElement('div');
@@ -2267,6 +2268,48 @@ window.loadCampaignDetail = function() {
       });
       var ss = document.getElementById('submit-section');
       if (ss) ss.style.display = 'block';
+    }
+
+    function renderTagChips() {
+      var container = document.getElementById('tag-chips');
+      if (!container) return;
+      var tags = window._pendingTags || [];
+      if (!tags.length) { container.innerHTML = ''; return; }
+      container.innerHTML = tags.map(function(tag, i) {
+        return '<span class="detail-tag-chip">' + tag +
+          '<button type="button" class="remove-tag-btn" data-index="' + i + '" title="Remove tag"><i class="ti ti-x"></i></button></span>';
+      }).join('');
+      container.querySelectorAll('.remove-tag-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          window._pendingTags.splice(parseInt(this.getAttribute('data-index')), 1);
+          renderTagChips();
+        });
+      });
+    }
+
+    function addTag(value) {
+      var tag = (value || '').trim().replace(/,+$/, '').trim();
+      if (!tag) return;
+      var exists = (window._pendingTags || []).some(function(t) { return t.toLowerCase() === tag.toLowerCase(); });
+      if (exists) return;
+      window._pendingTags.push(tag);
+      renderTagChips();
+    }
+
+    var tagInput = document.getElementById('tag-input');
+    if (tagInput) {
+      tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          var vals = this.value.split(',');
+          vals.forEach(function(v) { addTag(v); });
+          this.value = '';
+        }
+      });
+      tagInput.addEventListener('blur', function() {
+        addTag(this.value);
+        this.value = '';
+      });
     }
 
     var MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -2454,6 +2497,10 @@ window.loadCampaignDetail = function() {
         var fd = new FormData();
         for (var j = 0; j < processedFiles.length; j++) { fd.append('resumes', processedFiles[j]); }
         fd.append('campaignName', window._campaignDetailName || '');
+        if (window._pendingTags && window._pendingTags.length) {
+          fd.append('tags', JSON.stringify(window._pendingTags));
+          window._pendingTags.forEach(function(tag) { fd.append('tags[]', tag); });
+        }
         fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
           .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status);
             fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> Resume has been uploaded and is being processed and scored';
@@ -2464,6 +2511,10 @@ window.loadCampaignDetail = function() {
               submitBtn.disabled = false;
               window._pendingFiles = [];
               renderFileList();
+              window._pendingTags = [];
+              renderTagChips();
+              var tagInput2 = document.getElementById('tag-input');
+              if (tagInput2) tagInput2.value = '';
             }, 3000);
           })
           .catch(function(e) {
@@ -2668,6 +2719,37 @@ function getStatusTags(c) {
   return tags;
 }
 
+function getCandidateTags(c) {
+  var raw = c && (c.Tags !== undefined ? c.Tags : c['Tags']);
+  if (raw === undefined || raw === null) return [];
+  if (Array.isArray(raw)) {
+    return raw.map(function(t) { return String(t).trim(); }).filter(Boolean);
+  }
+  var str = String(raw).trim();
+  if (!str || str === '—') return [];
+  if (str.charAt(0) === '[') {
+    try { var arr = JSON.parse(str); if (Array.isArray(arr)) return arr.map(function(t) { return String(t).trim(); }).filter(Boolean); } catch (e) {}
+  }
+  return str.split(',').map(function(t) { return String(t).trim().replace(/^#/, ''); }).filter(Boolean);
+}
+
+var TAG_COLORS = [
+  ['rgba(37,99,235,0.12)', '#2563eb'],
+  ['rgba(16,185,129,0.12)', '#10b981'],
+  ['rgba(245,158,11,0.14)', '#d97706'],
+  ['rgba(168,85,247,0.13)', '#a855f7'],
+  ['rgba(236,72,153,0.12)', '#ec4899'],
+  ['rgba(6,182,212,0.13)', '#0891b2'],
+  ['rgba(239,68,68,0.12)', '#ef4444'],
+  ['rgba(107,114,128,0.14)', '#6b7280']
+];
+
+function tagColor(tag) {
+  var h = 0;
+  for (var i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  return TAG_COLORS[h % TAG_COLORS.length];
+}
+
 function getOverallResult(c) {
   var decisions = [c['Resume Decision'], c['Round 1 Decision'], c['Round 2 Decision'], c['Round 3 Decision'], c['Call Decision']].filter(Boolean);
   if (!decisions.length) return 'Pending';
@@ -2779,6 +2861,11 @@ function renderCandidates(list) {
     var fit = getFitLevel(c);
     var stage = getCandidateStage(c);
     var tags = getStatusTags(c);
+    var userTags = getCandidateTags(c);
+    var userTagsHtml = userTags.map(function(t) {
+      var col = tagColor(t);
+      return '<span class="cand-user-tag" style="background:' + col[0] + ';color:' + col[1] + ';">' + t + '</span>';
+    }).join('');
     var strengths = c.Strengths || '';
     var resumeLink = c['Resume Link'] || '';
     var scoreHtml = sl !== '—' ? '<span style="font-size:22px;font-weight:800;line-height:1;color:' + (sl.label >= 75 ? 'var(--emerald)' : sl.label >= 40 ? 'var(--amber)' : 'var(--red)') + ';">' + sl.label + '</span>' : '';
@@ -2823,6 +2910,7 @@ function renderCandidates(list) {
         '<div class="cand-card-info">' +
           '<div class="cand-card-name">' + name + '</div>' +
           '<div class="cand-card-sub">' + subParts.join(' · ') + '</div>' +
+          (userTagsHtml ? '<div class="cand-card-user-tags">' + userTagsHtml + '</div>' : '') +
         '</div>' +
         (scoreHtml ? '<div style="flex-shrink:0;">' + scoreHtml + '</div>' : '') +
       '</div>' +
@@ -3020,6 +3108,7 @@ window.filterCandidates = function() {
   var roleFilter = document.getElementById('cand-filter-role').value;
   var fitFilter = document.getElementById('cand-filter-fit').value;
   var recruiterFilter = document.getElementById('cand-filter-recruiter').value;
+  var tagFilter = document.getElementById('cand-filter-tag').value;
 
   var filtered = all.filter(function(c) {
     var searchStr = ((c.Name || '') + ' ' + (c.Email || '') + ' ' + (c['Phone Number'] || '') + ' ' + (c.Role || '') + ' ' + (c.City || '') + ' ' + (c['Candidate ID'] || '')).toLowerCase();
@@ -3047,6 +3136,7 @@ window.filterCandidates = function() {
       var recruiters = [c['Round 1 Assigned'], c['Round 2 Assigned'], c['Round 3 Assigned']].filter(Boolean);
       if (recruiters.indexOf(recruiterFilter) === -1) return false;
     }
+    if (tagFilter && getCandidateTags(c).indexOf(tagFilter) === -1) return false;
     return true;
   });
 
@@ -3076,10 +3166,11 @@ function updatePagination(count) {
 
 function populateFilterDropdowns() {
   var cands = window._candidateData || [];
-  var roles = {}, recruiters = {};
+  var roles = {}, recruiters = {}, tags = {};
   cands.forEach(function(c) {
     if (c.Role) roles[c.Role] = true;
     [c['Round 1 Assigned'], c['Round 2 Assigned'], c['Round 3 Assigned']].filter(Boolean).forEach(function(r) { recruiters[r] = true; });
+    getCandidateTags(c).forEach(function(t) { tags[t] = true; });
   });
   var roleSel = document.getElementById('cand-filter-role');
   if (roleSel) {
@@ -3090,6 +3181,13 @@ function populateFilterDropdowns() {
   if (recSel) {
     recSel.innerHTML = '<option value="">All Recruiters</option>';
     Object.keys(recruiters).sort().forEach(function(r) { recSel.innerHTML += '<option value="' + r + '">' + r + '</option>'; });
+  }
+  var tagSel = document.getElementById('cand-filter-tag');
+  if (tagSel) {
+    var prev = tagSel.value;
+    tagSel.innerHTML = '<option value="">All Tags</option>';
+    Object.keys(tags).sort().forEach(function(t) { tagSel.innerHTML += '<option value="' + t + '">' + t + '</option>'; });
+    if (prev) tagSel.value = prev;
   }
 }
 
