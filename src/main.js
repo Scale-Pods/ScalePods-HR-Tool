@@ -2298,7 +2298,12 @@ window.loadCampaignDetail = function() {
     }
 
     var MAX_FILE_SIZE = 20 * 1024 * 1024;
+    var MAX_TOTAL_SIZE = 4 * 1024 * 1024;
     var ALLOWED_EXTS = ['pdf','png','jpg','jpeg','gif','webp','docx'];
+
+    function totalPendingSize() {
+      return (window._pendingFiles || []).reduce(function(sum, f) { return sum + (f.size || 0); }, 0);
+    }
 
     function isValidFile(name) {
       var ext = name.split('.').pop().toLowerCase();
@@ -2316,6 +2321,10 @@ window.loadCampaignDetail = function() {
         }
         if (files[i].size > MAX_FILE_SIZE) {
           rejected.push(files[i].name + ' (exceeds 20MB limit)');
+          continue;
+        }
+        if (totalPendingSize() + files[i].size > MAX_TOTAL_SIZE * 4) {
+          rejected.push(files[i].name + ' (batch too large)');
           continue;
         }
         window._pendingFiles.push(files[i]);
@@ -2434,6 +2443,34 @@ window.loadCampaignDetail = function() {
     }
     // ──────────────────────────────────────────────────────────────────────
 
+    // ── Image optimization: downscale + re-encode to JPEG ────────────────
+    async function compressImage(imageFile) {
+      var isGif = imageFile.name.toLowerCase().endsWith('.gif');
+      var MAX_DIM = 1400;
+      return new Promise(function(resolve, reject) {
+        var url = URL.createObjectURL(imageFile);
+        var img = new Image();
+        img.onload = function() {
+          URL.revokeObjectURL(url);
+          var scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+          if (scale >= 1 && imageFile.size <= 800 * 1024) { resolve(imageFile); return; }
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(function(blob) {
+            if (!blob) { reject(new Error('Could not optimize ' + imageFile.name)); return; }
+            if (blob.size >= imageFile.size && !isGif) { resolve(imageFile); return; }
+            var baseName = imageFile.name.replace(/\.[^.]+$/, '');
+            resolve(new File([blob], baseName + '.jpg', { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.82);
+        };
+        img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Could not read ' + imageFile.name)); };
+        img.src = url;
+      });
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     var submitBtn = document.getElementById('submit-resumes-btn');
     if (submitBtn) {
       submitBtn.addEventListener('click', async function() {
@@ -2447,14 +2484,22 @@ window.loadCampaignDetail = function() {
         }
         submitBtn.disabled = true;
 
-        // Check if any DOCX files need conversion
+        var isImageFile = function(name) {
+          return ['png','jpg','jpeg','gif','webp'].indexOf(name.split('.').pop().toLowerCase()) !== -1;
+        };
+
+        // Check if any DOCX / image files need processing
         var hasDocx = files.some(function(f) { return f.name.toLowerCase().endsWith('.docx'); });
-        if (hasDocx) {
+        var hasImages = files.some(function(f) { return isImageFile(f.name); });
+        if (hasDocx || hasImages) {
           fb.style.display = 'block';
-          fb.innerHTML = '<i class="ti ti-file-type-pdf" style="color:var(--blue)"></i> Converting Word documents to PDF...';
+          var steps = [];
+          if (hasDocx) steps.push('Converting Word documents to PDF');
+          if (hasImages) steps.push('Optimizing images');
+          fb.innerHTML = '<i class="ti ti-file-type-pdf" style="color:var(--blue)"></i> ' + steps.join(' & ') + '...';
         }
 
-        // Convert all DOCX files to PDF, keep others as-is
+        // Convert DOCX to PDF and optimize images, keep others as-is
         var processedFiles = [];
         var convErrors = [];
         for (var i = 0; i < files.length; i++) {
@@ -2467,9 +2512,25 @@ window.loadCampaignDetail = function() {
               convErrors.push(file.name + ': ' + convErr.message);
               processedFiles.push(file); // fallback: upload original
             }
+          } else if (isImageFile(file.name)) {
+            try {
+              var optimized = await compressImage(file);
+              processedFiles.push(optimized);
+            } catch (imgErr) {
+              convErrors.push(file.name + ': ' + imgErr.message);
+              processedFiles.push(file); // fallback: upload original
+            }
           } else {
             processedFiles.push(file);
           }
+        }
+
+        var totalSize = processedFiles.reduce(function(s, f) { return s + (f.size || 0); }, 0);
+        if (totalSize > MAX_TOTAL_SIZE) {
+          submitBtn.disabled = false;
+          fb.style.display = 'block';
+          fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:#ef4444"></i> Upload failed: total file size (' + (totalSize / 1048576).toFixed(1) + ' MB) still exceeds the server limit (~4 MB). Please upload fewer or smaller files.';
+          return;
         }
 
         if (convErrors.length) {
