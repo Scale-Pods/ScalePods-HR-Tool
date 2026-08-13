@@ -1006,16 +1006,6 @@ window.syncRoundDates = function() {
         updateDateDisplay(endEl);
       }
     }
-    if (i < num) {
-      const nextStartEl = document.getElementById('round-' + (i + 1) + '-start');
-      if (endEl && nextStartEl) {
-        nextStartEl.min = endEl.value || '';
-        if (nextStartEl.value && nextStartEl.value < nextStartEl.min) {
-          nextStartEl.value = nextStartEl.min;
-          updateDateDisplay(nextStartEl);
-        }
-      }
-    }
   }
 };
 
@@ -1112,11 +1102,6 @@ window.generateRounds = function() {
       panel.appendChild(item);
     });
     populateTimeSlots(i);
-    if (i > 1) {
-      const prevEnd = document.getElementById('round-' + (i - 1) + '-end');
-      const curStart = document.getElementById('round-' + i + '-start');
-      if (prevEnd && prevEnd.value) curStart.min = prevEnd.value;
-    }
   }
 };
 
