@@ -2297,8 +2297,8 @@ window.loadCampaignDetail = function() {
       });
     }
 
-    var MAX_FILE_SIZE = 20 * 1024 * 1024;
-    var MAX_TOTAL_SIZE = 4 * 1024 * 1024;
+    var MAX_FILE_SIZE = 64 * 1024 * 1024;
+    var MAX_TOTAL_SIZE = 300 * 1024 * 1024;
     var ALLOWED_EXTS = ['pdf','png','jpg','jpeg','gif','webp','docx'];
 
     function totalPendingSize() {
@@ -2320,10 +2320,10 @@ window.loadCampaignDetail = function() {
           continue;
         }
         if (files[i].size > MAX_FILE_SIZE) {
-          rejected.push(files[i].name + ' (exceeds 20MB limit)');
+          rejected.push(files[i].name + ' (exceeds ' + (MAX_FILE_SIZE / 1048576) + 'MB limit)');
           continue;
         }
-        if (totalPendingSize() + files[i].size > MAX_TOTAL_SIZE * 4) {
+        if (totalPendingSize() + files[i].size > MAX_TOTAL_SIZE) {
           rejected.push(files[i].name + ' (batch too large)');
           continue;
         }
@@ -2529,46 +2529,58 @@ window.loadCampaignDetail = function() {
         if (totalSize > MAX_TOTAL_SIZE) {
           submitBtn.disabled = false;
           fb.style.display = 'block';
-          fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:#ef4444"></i> Upload failed: total file size (' + (totalSize / 1048576).toFixed(1) + ' MB) still exceeds the server limit (~4 MB). Please upload fewer or smaller files.';
+          fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:#ef4444"></i> Upload failed: total file size (' + (totalSize / 1048576).toFixed(1) + ' MB) exceeds the limit. Please upload fewer or smaller files.';
           return;
         }
 
         if (convErrors.length) {
           fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:var(--amber)"></i> Warning: ' + convErrors.join('; ') + '. Sending originals instead.';
-        } else {
-          fb.style.display = 'block';
-          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + processedFiles.length + ' file(s)...';
         }
 
-        var fd = new FormData();
-        for (var j = 0; j < processedFiles.length; j++) { fd.append('resumes', processedFiles[j]); }
-        fd.append('campaignName', window._campaignDetailName || '');
-        if (window._pendingTags && window._pendingTags.length) {
-          fd.append('tags', JSON.stringify(window._pendingTags));
-          window._pendingTags.forEach(function(tag) { fd.append('tags[]', tag); });
+        var okCount = 0;
+        var failedFiles = [];
+        fb.style.display = 'block';
+        for (var k = 0; k < processedFiles.length; k++) {
+          var single = processedFiles[k];
+          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + (k + 1) + ' of ' + processedFiles.length + ' - ' + single.name + ' (' + (single.size > 1048576 ? (single.size / 1048576).toFixed(1) + ' MB' : (single.size / 1024).toFixed(0) + ' KB') + ')';
+          var fd = new FormData();
+          fd.append('resumes', single);
+          fd.append('campaignName', window._campaignDetailName || '');
+          if (window._pendingTags && window._pendingTags.length) {
+            fd.append('tags', JSON.stringify(window._pendingTags));
+            window._pendingTags.forEach(function(tag) { fd.append('tags[]', tag); });
+          }
+          try {
+            var resp = await fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            okCount++;
+          } catch (e) {
+            var emsg = e.message;
+            if (emsg.indexOf('413') !== -1) emsg = 'too large (server limit exceeded)';
+            failedFiles.push(single.name + ' - ' + emsg);
+          }
         }
-        fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd })
-          .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status);
-            fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> Resume has been uploaded and is being processed and scored';
-            submitBtn.disabled = true;
-            setTimeout(function() {
-              fb.style.display = 'none';
-              fb.innerHTML = '';
-              submitBtn.disabled = false;
-              window._pendingFiles = [];
-              renderFileList();
-              window._pendingTags = [];
-              renderTagChips();
-              var tagInput2 = document.getElementById('tag-input');
-              if (tagInput2) tagInput2.value = '';
-            }, 3000);
-          })
-          .catch(function(e) {
-            var msg = e.message;
-            if (msg.indexOf('413') !== -1) msg = 'file(s) too large (server limit exceeded). Try uploading fewer or smaller files.';
-            fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> Upload failed: ' + msg;
-            submitBtn.disabled = false;
-          });
+
+        if (okCount === processedFiles.length) {
+          fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> All ' + okCount + ' resume' + (okCount > 1 ? 's' : '') + ' uploaded and are being processed and scored';
+        } else if (okCount > 0) {
+          fb.innerHTML = '<i class="ti ti-alert-triangle" style="color:var(--amber)"></i> ' + okCount + ' of ' + processedFiles.length + ' uploaded. Failed: ' + failedFiles.join('; ');
+        } else {
+          fb.innerHTML = '<i class="ti ti-x" style="color:#ef4444"></i> Upload failed: ' + failedFiles.join('; ');
+        }
+        submitBtn.disabled = false;
+        if (failedFiles.length === 0) {
+          setTimeout(function() {
+            fb.style.display = 'none';
+            fb.innerHTML = '';
+            window._pendingFiles = [];
+            renderFileList();
+            window._pendingTags = [];
+            renderTagChips();
+            var tagInput2 = document.getElementById('tag-input');
+            if (tagInput2) tagInput2.value = '';
+          }, 3000);
+        }
       });
     }
   }
