@@ -243,7 +243,7 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
       action: 'RescheduleInterview',
       eventId: eventId,
       interviewerEmail: email,
-      newDate: date.toISOString().split('T')[0],
+      newDate: date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'),
       newTime: selectedTime,
       candidate: candidate,
     };

@@ -2539,10 +2539,14 @@ window.loadCampaignDetail = function() {
 
         var okCount = 0;
         var failedFiles = [];
+        var doneCount = 0;
+        var CONCURRENCY = 4;
         fb.style.display = 'block';
-        for (var k = 0; k < processedFiles.length; k++) {
-          var single = processedFiles[k];
-          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + (k + 1) + ' of ' + processedFiles.length + ' - ' + single.name + ' (' + (single.size > 1048576 ? (single.size / 1048576).toFixed(1) + ' MB' : (single.size / 1024).toFixed(0) + ' KB') + ')';
+        var remaining = processedFiles.slice();
+        var uploadOne = async function() {
+          var single = remaining.shift();
+          if (!single) return;
+          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + (doneCount + 1) + ' of ' + processedFiles.length + ' - ' + single.name + ' (' + (single.size > 1048576 ? (single.size / 1048576).toFixed(1) + ' MB' : (single.size / 1024).toFixed(0) + ' KB') + ')';
           var fd = new FormData();
           fd.append('resumes', single);
           fd.append('campaignName', window._campaignDetailName || '');
@@ -2559,7 +2563,14 @@ window.loadCampaignDetail = function() {
             if (emsg.indexOf('413') !== -1) emsg = 'too large (server limit exceeded)';
             failedFiles.push(single.name + ' - ' + emsg);
           }
+          doneCount++;
+          if (remaining.length > 0) await uploadOne();
+        };
+        var workers = [];
+        for (var w = 0; w < Math.min(CONCURRENCY, processedFiles.length); w++) {
+          workers.push(uploadOne());
         }
+        await Promise.all(workers);
 
         if (okCount === processedFiles.length) {
           fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> All ' + okCount + ' resume' + (okCount > 1 ? 's' : '') + ' uploaded and are being processed and scored';
