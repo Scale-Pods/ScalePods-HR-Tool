@@ -3621,7 +3621,6 @@ function renderDrawerContent(c) {
           btn.style.borderColor = isPos ? 'var(--emerald)' : 'var(--red)';
           btn.style.boxShadow = '0 0 0 2px ' + (isPos ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
         }
-        btn.classList.add('dr-selected');
       }
     }
   });

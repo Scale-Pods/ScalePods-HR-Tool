@@ -239,6 +239,7 @@ export function RescheduleCalendar({ eventId, email, candidate, onSuccess, onCan
 
     setIsSubmitting(true);
     setToast(null);
+    console.log('[Reschedule] selected date object:', date, 'getDate():', date.getDate(), 'getMonth():', date.getMonth()+1, 'getFullYear():', date.getFullYear());
     const payload = {
       action: 'RescheduleInterview',
       eventId: eventId,
