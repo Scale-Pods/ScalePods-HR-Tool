@@ -294,6 +294,8 @@ body[data-theme="dark"] .nav-item.active {
 
 .sidebar-footer { margin-top: auto; padding-top: 8px; }
 
+.sidebar-footer .nav-item { margin-bottom: 8px; }
+
 .sidebar-user {
   display: flex;
   align-items: center;
