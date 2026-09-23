@@ -2443,6 +2443,27 @@ window.loadCampaignDetail = function() {
     }
     // ──────────────────────────────────────────────────────────────────────
 
+    // ── PDF optimization: strip unused data (lossless) ───────────────────
+    async function optimizePdf(pdfFile) {
+      if (!window.PDFLib) {
+        throw new Error('PDF library not loaded. Please refresh and try again.');
+      }
+      var arrayBuffer = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) { resolve(e.target.result); };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(pdfFile);
+      });
+      var src = await window.PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true, updateMetadata: false });
+      var out = await window.PDFLib.PDFDocument.create();
+      var pages = await out.copyPages(src, src.getPageIndices());
+      pages.forEach(function(page) { out.addPage(page); });
+      var bytes = await out.save({ useObjectStreams: true });
+      if (bytes.byteLength >= pdfFile.size) return pdfFile; // no gain, keep original
+      return new File([bytes], pdfFile.name, { type: 'application/pdf' });
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     // ── Image optimization: downscale + re-encode to JPEG ────────────────
     async function compressImage(imageFile) {
       var isGif = imageFile.name.toLowerCase().endsWith('.gif');
@@ -2488,18 +2509,20 @@ window.loadCampaignDetail = function() {
           return ['png','jpg','jpeg','gif','webp'].indexOf(name.split('.').pop().toLowerCase()) !== -1;
         };
 
-        // Check if any DOCX / image files need processing
+        // Check if any DOCX / PDF / image files need processing
         var hasDocx = files.some(function(f) { return f.name.toLowerCase().endsWith('.docx'); });
         var hasImages = files.some(function(f) { return isImageFile(f.name); });
-        if (hasDocx || hasImages) {
+        var hasPdf = files.some(function(f) { return f.name.toLowerCase().endsWith('.pdf'); });
+        if (hasDocx || hasImages || hasPdf) {
           fb.style.display = 'block';
           var steps = [];
           if (hasDocx) steps.push('Converting Word documents to PDF');
           if (hasImages) steps.push('Optimizing images');
+          if (hasPdf) steps.push('Optimizing PDFs');
           fb.innerHTML = '<i class="ti ti-file-type-pdf" style="color:var(--blue)"></i> ' + steps.join(' & ') + '...';
         }
 
-        // Convert DOCX to PDF and optimize images, keep others as-is
+        // Optimize PDFs, convert DOCX to PDF and optimize images, keep others as-is
         var processedFiles = [];
         var convErrors = [];
         for (var i = 0; i < files.length; i++) {
@@ -2510,6 +2533,14 @@ window.loadCampaignDetail = function() {
               processedFiles.push(pdfFile);
             } catch (convErr) {
               convErrors.push(file.name + ': ' + convErr.message);
+              processedFiles.push(file); // fallback: upload original
+            }
+          } else if (file.name.toLowerCase().endsWith('.pdf')) {
+            try {
+              var optimizedPdf = await optimizePdf(file);
+              processedFiles.push(optimizedPdf);
+            } catch (pdfErr) {
+              convErrors.push(file.name + ': ' + pdfErr.message);
               processedFiles.push(file); // fallback: upload original
             }
           } else if (isImageFile(file.name)) {
