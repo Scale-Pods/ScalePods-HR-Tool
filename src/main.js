@@ -2571,15 +2571,16 @@ window.loadCampaignDetail = function() {
         var okCount = 0;
         var failedFiles = [];
         var doneCount = 0;
-        var CONCURRENCY = 4;
+        var BATCH_SIZE = 10;
+        var batches = [];
+        for (var bi = 0; bi < processedFiles.length; bi += BATCH_SIZE) {
+          batches.push(processedFiles.slice(bi, bi + BATCH_SIZE));
+        }
         fb.style.display = 'block';
-        var remaining = processedFiles.slice();
-        var uploadOne = async function() {
-          var single = remaining.shift();
-          if (!single) return;
-          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + (doneCount + 1) + ' of ' + processedFiles.length + ' - ' + single.name + ' (' + (single.size > 1048576 ? (single.size / 1048576).toFixed(1) + ' MB' : (single.size / 1024).toFixed(0) + ' KB') + ')';
+        fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploading ' + processedFiles.length + ' resume' + (processedFiles.length > 1 ? 's' : '') + ' in ' + batches.length + ' batch' + (batches.length > 1 ? 'es' : '') + '...';
+        var uploadBatch = async function(batch) {
           var fd = new FormData();
-          fd.append('resumes', single);
+          batch.forEach(function(f) { fd.append('resumes', f); });
           fd.append('campaignName', window._campaignDetailName || '');
           if (window._pendingTags && window._pendingTags.length) {
             fd.append('tags', JSON.stringify(window._pendingTags));
@@ -2588,20 +2589,16 @@ window.loadCampaignDetail = function() {
           try {
             var resp = await fetch('/n8n-proxy/webhook/e230ad93-b644-4a56-b03f-cb83039ed537', { method: 'POST', body: fd });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            okCount++;
+            okCount += batch.length;
           } catch (e) {
             var emsg = e.message;
             if (emsg.indexOf('413') !== -1) emsg = 'too large (server limit exceeded)';
-            failedFiles.push(single.name + ' - ' + emsg);
+            batch.forEach(function(f) { failedFiles.push(f.name + ' - ' + emsg); });
           }
-          doneCount++;
-          if (remaining.length > 0) await uploadOne();
+          doneCount += batch.length;
+          fb.innerHTML = '<i class="ti ti-cloud-upload"></i> Uploaded ' + Math.min(doneCount, processedFiles.length) + ' of ' + processedFiles.length + ' resumes';
         };
-        var workers = [];
-        for (var w = 0; w < Math.min(CONCURRENCY, processedFiles.length); w++) {
-          workers.push(uploadOne());
-        }
-        await Promise.all(workers);
+        await Promise.all(batches.map(uploadBatch));
 
         if (okCount === processedFiles.length) {
           fb.innerHTML = '<i class="ti ti-check" style="color:var(--emerald)"></i> All ' + okCount + ' resume' + (okCount > 1 ? 's' : '') + ' uploaded and are being processed and scored';
