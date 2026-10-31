@@ -2333,6 +2333,8 @@ window.loadCampaignDetail = function() {
       if (added > 0) {
         if (fb) { fb.style.display = 'none'; fb.innerHTML = ''; }
         if (hintEl) hintEl.textContent = 'Supports PDF, Word (DOCX) and image files';
+        var notice = document.getElementById('upload-notice');
+        if (notice) { notice.style.display = 'none'; notice.innerHTML = ''; }
       }
       if (rejected.length) {
         if (fb) {
@@ -2504,6 +2506,8 @@ window.loadCampaignDetail = function() {
           return;
         }
         submitBtn.disabled = true;
+        var uploadNoticeEl = document.getElementById('upload-notice');
+        if (uploadNoticeEl) { uploadNoticeEl.style.display = 'none'; uploadNoticeEl.innerHTML = ''; }
 
         var isImageFile = function(name) {
           return ['png','jpg','jpeg','gif','webp'].indexOf(name.split('.').pop().toLowerCase()) !== -1;
@@ -2609,16 +2613,21 @@ window.loadCampaignDetail = function() {
         }
         submitBtn.disabled = false;
         if (failedFiles.length === 0) {
-          setTimeout(function() {
-            fb.style.display = 'none';
-            fb.innerHTML = '';
-            window._pendingFiles = [];
-            renderFileList();
-            window._pendingTags = [];
-            renderTagChips();
-            var tagInput2 = document.getElementById('tag-input');
-            if (tagInput2) tagInput2.value = '';
-          }, 3000);
+          fb.style.display = 'none';
+          fb.innerHTML = '';
+          window._pendingFiles = [];
+          renderFileList();
+          window._pendingTags = [];
+          renderTagChips();
+          var tagInput2 = document.getElementById('tag-input');
+          if (tagInput2) tagInput2.value = '';
+        }
+        if (okCount > 0) {
+          var uploadNotice = document.getElementById('upload-notice');
+          if (uploadNotice) {
+            uploadNotice.style.display = 'flex';
+            uploadNotice.innerHTML = '<i class="ti ti-loader-2" style="font-size:16px;flex-shrink:0;"></i><span>Resumes are being processed and will take a while for it to reflect.</span>';
+          }
         }
       });
     }
