@@ -904,7 +904,7 @@ body[data-theme="dark"] .hero-metric {
   max-width: 1120px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: start;
 }
@@ -1310,6 +1310,13 @@ select.create-input {
 
 /* ─── Right Column ─── */
 .create-form-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 100px; }
+
+/* Keep the preview visible without squeezing/clipping the form on narrow screens */
+@media (max-width: 1150px) {
+  .create-wrapper { grid-template-columns: minmax(0, 1fr); }
+  .create-form-side { display: contents; }
+  .create-summary { order: -1; }
+}
 
 .create-summary {
   background: var(--surface-solid);
